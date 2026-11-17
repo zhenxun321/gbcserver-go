@@ -2,8 +2,6 @@
 
 gbcserver-go 为 Minecraft Java 服务器提供玩家网页、管理页面、白名单接口和兑换码接口。服务端使用 Go；白名单与兑换功能由独立的 Paper/Leaves 插件连接。
 
-此仓库用于构建和发布 gbcserver-go 正式版。程序不包含玩家官网首页。部署 ZIP、九个平台的 Go 程序和插件 JAR 均由源码构建，不提交到 Git。
-
 ## 环境要求
 
 - Go 1.24 或更高版本
