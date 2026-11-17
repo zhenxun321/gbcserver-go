@@ -1,0 +1,7 @@
+name: WhiteListSync
+version: 2.0.1
+main: com.gbc.whitelist.WhiteListSyncPlugin
+api-version: '1.21'
+author: GBC_Team
+description: 内网连接 GBC Go 服务的异步白名单插件。
+

@@ -1,0 +1,5 @@
+api-url: "http://127.0.0.1:18095/api"
+# 新协议：只授予 coupon.redeem 权限的每服 Bearer token。
+coupon-token: "CHANGE_ME"
+max-item-amount: 2304
+

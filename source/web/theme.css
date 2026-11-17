@@ -1,0 +1,120 @@
+/* 全站共用的蓝白配色与深色配色，保证页面切换时视觉一致。 */
+:root {
+    color-scheme: light;
+    --page: #f5f7fb;
+    --surface: #ffffff;
+    --surface-raised: #ffffff;
+    --surface-soft: #f1f5fb;
+    --surface-hover: #eaf1fc;
+    --ink: #26364d;
+    --ink-strong: #172b46;
+    --muted: #64748b;
+    --line: #e3e9f2;
+    --line-strong: #c5d2e4;
+    --primary: #2864d7;
+    --primary-hover: #1c50b8;
+    --primary-soft: #eaf1ff;
+    --on-primary: #ffffff;
+    --success: #18744e;
+    --success-soft: #e8f6ef;
+    --danger: #bd3548;
+    --danger-soft: #fff0f2;
+    --warning: #8d620e;
+    --warning-soft: #fff5db;
+    --sidebar: var(--surface);
+    --sidebar-ink: var(--ink-strong);
+    --sidebar-muted: var(--muted);
+    --sidebar-line: var(--line);
+    --sidebar-width: 232px;
+    --nav-height: 76px;
+    --radius: 8px;
+    --radius-card: 8px;
+    --shadow: 0 4px 24px rgba(30, 59, 108, 0.045);
+    --shadow-raised: 0 16px 48px rgba(30, 59, 108, 0.09);
+    --overlay: rgba(15, 28, 49, 0.52);
+    --focus: rgba(40, 100, 215, 0.24);
+    --effect-blue: #2864d7;
+    --effect-blue-rgb: 40, 100, 215;
+    --grid-line: rgba(71, 123, 201, 0.09);
+    --decor-line: rgba(58, 119, 213, 0.2);
+    --decor-fill: rgba(88, 146, 232, 0.05);
+    --card-sheen: rgba(255, 255, 255, 0.9);
+}
+
+html[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #101722;
+    --surface: #182231;
+    --surface-raised: #1d293b;
+    --surface-soft: #202d40;
+    --surface-hover: #283851;
+    --ink: #d6e1f0;
+    --ink-strong: #f0f5fc;
+    --muted: #a3b3c9;
+    --line: #2c3a4e;
+    --line-strong: #465d7a;
+    --primary: #8ab4ff;
+    --primary-hover: #adcaff;
+    --primary-soft: #263c5f;
+    --on-primary: #12213b;
+    --success: #78d6ac;
+    --success-soft: #203d34;
+    --danger: #ff9eac;
+    --danger-soft: #472b38;
+    --warning: #eac37a;
+    --warning-soft: #403725;
+    --shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+    --shadow-raised: 0 16px 48px rgba(0, 0, 0, 0.22);
+    --overlay: rgba(4, 10, 19, 0.72);
+    --focus: rgba(138, 180, 255, 0.3);
+    --sidebar: var(--surface);
+    --sidebar-ink: var(--ink-strong);
+    --sidebar-muted: var(--muted);
+    --sidebar-line: var(--line);
+    --effect-blue: #8ab4ff;
+    --effect-blue-rgb: 138, 180, 255;
+    --grid-line: rgba(138, 180, 255, 0.075);
+    --decor-line: rgba(138, 180, 255, 0.22);
+    --decor-fill: rgba(138, 180, 255, 0.045);
+    --card-sheen: rgba(189, 214, 255, 0.09);
+}
+
+* { box-sizing: border-box; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+button, input, select, textarea { font: inherit; }
+button, a, [role="button"] { -webkit-tap-highlight-color: transparent; }
+::selection { background: var(--primary-soft); color: var(--ink-strong); }
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 3px;
+}
+.theme-button, .login-theme-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+}
+.theme-button:hover, .login-theme-button:hover {
+    color: var(--primary);
+    border-color: var(--line-strong);
+    background: var(--primary-soft);
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

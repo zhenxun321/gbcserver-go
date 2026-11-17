@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport">
+    <meta content="#ffffff" name="theme-color">
+    <title data-site-title="loginPageTitle">嘎嘣脆综合管理系统</title>
+    <link href="/images/gbc.jpg" rel="icon" type="image/jpg">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="/theme.js"></script>
+    <link href="/system-redesign.css" rel="stylesheet">
+    <link href="/interaction-effects.css" rel="stylesheet">
+    <link href="/theme.css" rel="stylesheet">
+    <link href="/visual-polish.css" rel="stylesheet">
+    <script defer src="/site-config.js"></script>
+    <script src="/interaction-effects.js"></script>
+</head>
+
+<body class="loading system-page">
+    <div id="page-splash">
+        <div aria-label="系统启动中" class="ba-loader" role="status">
+            <span class="ba-loader-ring"></span>
+            <span class="ba-loader-orbit"></span>
+            <span class="ba-loader-core"></span>
+            <span class="ba-loader-label">SYSTEM START</span>
+        </div>
+    </div>
+    <div id="app">
+        <!-- 通知区域 -->
+        <div class="notification" id="notification"></div>
+        <!-- 加载动画 -->
+        <div class="loading-overlay" id="loading-overlay">
+            <div aria-label="正在同步数据" class="ba-loader" role="status">
+                <span class="ba-loader-ring"></span>
+                <span class="ba-loader-orbit"></span>
+                <span class="ba-loader-core"></span>
+                <span class="ba-loader-label">DATA SYNC</span>
+            </div>
+        </div>
+        <!-- 登录界面 -->
+        <div class="login-container" id="login-page">
+            <div class="login-decoration" aria-hidden="true">
+                <span class="scene-block scene-block-one"></span>
+                <span class="scene-block scene-block-two"></span>
+                <span class="scene-block scene-block-three"></span>
+                <span class="scene-block scene-block-four"></span>
+            </div>
+            <div class="login-toolbar">
+                <a class="back-home" href="/ping.html">
+                    <i aria-hidden="true" class="fas fa-arrow-left"></i>
+                    <span>返回状态页</span>
+                </a>
+                <button aria-label="切换深浅主题" class="login-theme-button" data-theme-toggle="" title="切换深浅主题" type="button">
+                    <i aria-hidden="true" class="fas fa-circle-half-stroke"></i>
+                </button>
+            </div>
+            <div class="login-card">
+                <div class="login-logo">
+                    <img alt="" class="login-logo-image" src="/images/logo.png">
+                    <span class="login-logo-kicker">GBC MANAGEMENT</span>
+                    <h1 data-site-field="loginPageTitle">嘎嘣脆综合管理系统</h1>
+                    <p>玩家登录</p>
+                </div>
+                <div class="login-form">
+                    <div class="group has-icon">
+                        <span aria-hidden="true" class="field-icon"><i class="fas fa-user"></i></span>
+                        <input autocomplete="username" class="input" id="login-username" onkeypress="return event.key !== '@'" placeholder=" " title="请输入用户名" type="text"><span class="highlight"></span><span class="bar"></span><label for="login-username">用户名</label>
+                    </div>
+                    <div class="group has-icon has-toggle">
+                        <span aria-hidden="true" class="field-icon"><i class="fas fa-lock"></i></span>
+                        <input autocomplete="current-password" class="input" id="login-password" placeholder=" " title="请输入密码" type="password">
+                        <button aria-label="显示密码" class="password-toggle" onclick="togglePasswordVisibility(this)" title="显示 / 隐藏密码" type="button"><i aria-hidden="true" class="fas fa-eye"></i></button>
+                        <span class="highlight"></span><span class="bar"></span><label for="login-password">密码</label>
+                    </div>
+                    
+                    <div class="login-options">
+                        <div class="remember-me">
+                            <input id="remember" type="checkbox">
+                            <label for="remember">记住我</label>
+                        </div>
+                        <button class="forgot-password" onclick="openModal('forgot')" type="button">忘记密码？</button>
+                    </div>
+                    <button class="login-button" id="player-login-btn" onclick="login('player')" type="button">玩家登录</button>
+                    
+                    <div class="register-link">
+                        没有账号？<button class="register-action" onclick="openModal('register')" type="button">立即注册</button>
+                    </div>
+                </div>
+            </div>
+            <p class="login-footer">© 2024-2026 <span data-site-field="siteName">嘎嘣脆综合管理系统</span></p>
+        </div>
+        <!-- 注册/忘记密码弹窗 -->
+        <div aria-hidden="true" class="modal" id="auth-modal" onclick="if (event.target === this) closeModal()">
+            <div aria-labelledby="modal-title" aria-modal="true" class="modal-content" role="dialog">
+                <button aria-label="关闭" title="关闭" class="close-button" onclick="closeModal()" type="button"><i aria-hidden="true" class="fas fa-xmark"></i></button>
+                <div class="modal-header">
+                    <span class="modal-heading-icon" aria-hidden="true"><i id="auth-modal-icon" class="fas fa-user-plus"></i></span>
+                    <h2 id="modal-title">注册新账号</h2>
+                </div>
+                <div aria-label="账户操作" class="modal-tabs" id="auth-tabs" role="tablist">
+                    <button aria-controls="register-form" aria-selected="false" class="modal-tab" id="register-tab" onclick="switchAuthTab('register')" role="tab" type="button">注册</button>
+                    <button aria-controls="forgot-form" aria-selected="false" class="modal-tab" id="forgot-tab" onclick="switchAuthTab('forgot')" role="tab" type="button">忘记密码</button>
+                </div>
+                <div class="modal-body">
+                    <!-- 注册表单 -->
+                    <div aria-labelledby="register-tab" class="auth-form" id="register-form" role="tabpanel">
+                        <div class="group"><input class="input" id="reg-username" oninput="validateInput(this, true)" placeholder=" " title="请输入用户名" type="text"><span class="highlight"></span><span class="bar"></span><label for="reg-username">用户名</label></div>
+                        <div class="group"><input class="input" id="reg-password" oninput="validateInput(this)" placeholder=" " title="请输入密码" type="password"><span class="highlight"></span><span class="bar"></span><label for="reg-password">密码</label></div>
+                        <div class="group"><input class="input" id="reg-email" placeholder=" " title="请输入邮箱" type="email"><span class="highlight"></span><span class="bar"></span><label for="reg-email">邮箱</label></div>
+                        <div class="dialog-actions">
+                            <button class="server-button" onclick="closeModal()" type="button">取消</button>
+                            <button class="login-button" onclick="register()" type="button">注册</button>
+                        </div>
+                    </div>
+                    <!-- 忘记密码表单 -->
+                    <div aria-labelledby="forgot-tab" class="auth-form" id="forgot-form" role="tabpanel" style="display:none">
+                        <div class="group"><input class="input" id="forgot-username" placeholder=" " title="请输入用户名" type="text"><span class="highlight"></span><span class="bar"></span><label for="forgot-username">用户名</label></div>
+                        <div class="group"><input class="input" id="forgot-email" placeholder=" " title="请输入注册邮箱" type="email"><span class="highlight"></span><span class="bar"></span><label for="forgot-email">邮箱</label></div>
+                        <div class="group"><input class="input" id="forgot-password" placeholder=" " title="请输入新密码" type="password"><span class="highlight"></span><span class="bar"></span><label for="forgot-password">新密码</label></div>
+                        <div class="dialog-actions">
+                            <button class="server-button" onclick="closeModal()" type="button">取消</button>
+                            <button class="login-button" onclick="resetPassword()" type="button">重置密码</button>
+                        </div>
+                    </div>
+                    <!-- 验证码表单 -->
+                    <div class="auth-form" id="verification-form" style="display:none">
+                        <div class="group"><input class="input" id="verification-code" placeholder=" " title="请输入6位验证码" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6"><span class="highlight"></span><span class="bar"></span><label for="verification-code">验证码</label></div>
+                        <div class="countdown" id="verification-countdown">验证码有效时间：05:00</div>
+                        <div class="dialog-actions">
+                            <button class="server-button" onclick="closeModal()" type="button">取消</button>
+                            <button class="login-button" id="verify-button" type="button">验证</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 主系统界面 -->
+        <div class="main-system" id="main-system">
+            <!-- 左侧导航栏 -->
+            <nav aria-label="玩家导航" class="sidebar">
+                <div class="sidebar-header">
+                    <h2 data-site-field="siteName">嘎嘣脆综合管理系统</h2>
+                    <p>综合管理系统</p>
+                </div>
+                <div class="nav-item active" data-page="user-center" onclick="switchPage('user-center')">
+                    <i aria-hidden="true" class="fas fa-user nav-icon"></i>
+                    <span class="nav-text">用户中心</span>
+                </div>
+                <div class="nav-item" data-page="sign-page" onclick="switchPage('sign-page')">
+                    <i aria-hidden="true" class="fas fa-calendar-check nav-icon"></i>
+                    <span class="nav-text">签到系统</span>
+                </div>
+                <div class="nav-item" data-page="shop" onclick="switchPage('shop')">
+                    <i aria-hidden="true" class="fas fa-store nav-icon"></i>
+                    <span class="nav-text">积分商城</span>
+                </div>
+                <div class="nav-item" data-page="leaderboard" onclick="switchPage('leaderboard')">
+                    <i aria-hidden="true" class="fas fa-trophy nav-icon"></i>
+                    <span class="nav-text">排行榜</span>
+                </div>
+                <div class="nav-item" data-page="server-status" onclick="switchPage('server-status')">
+                    <i aria-hidden="true" class="fas fa-server nav-icon"></i>
+                    <span class="nav-text">服务器状态</span>
+                </div>
+                <div class="nav-divider"></div>
+                <div class="nav-item" data-page="account" onclick="switchPage('account')">
+                    <i aria-hidden="true" class="fas fa-gear nav-icon"></i>
+                    <span class="nav-text">账户设置</span>
+                </div>
+                <div class="nav-item" data-page="support" onclick="switchPage('support')">
+                    <i aria-hidden="true" class="fas fa-shirt nav-icon"></i>
+                    <span class="nav-text">LittleSkin皮肤站</span> <!-- 修改文本 -->
+                </div>
+                <div class="nav-divider"></div>
+                <div aria-label="切换深浅主题" class="nav-item theme-item" data-theme-toggle="" id="theme-toggle-item" role="button" tabindex="0">
+                    <i aria-hidden="true" class="fas fa-circle-half-stroke nav-icon"></i>
+                    <span class="nav-text">深色模式</span>
+                </div>
+                <div class="nav-item" onclick="logout()" role="button" tabindex="0">
+                    <i aria-hidden="true" class="fas fa-arrow-right-from-bracket nav-icon"></i>
+                    <span class="nav-text">退出登录</span>
+                </div>
+            </nav>
+            <!-- 主内容区域 -->
+            <div class="main-content">
+                <!-- 头部区域 -->
+                <div class="header">
+                    <h1 class="page-title" id="page-title">用户中心</h1>
+                    <div class="user-info">
+                        <div class="user-avatar">
+                            <img alt="用户头像" id="user-avatar-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='40' r='20' fill='%233498db'/%3E%3Ccircle cx='50' cy='100' r='40' fill='%233498db'/%3E%3C/svg%3E">
+                        </div>
+                        <div class="user-details">
+                            <div class="user-name" id="username-display">玩家</div>
+                            <div class="user-status" id="user-status">在线</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 用户中心页面 -->
+                <div class="page-content" id="user-center">
+                    <div class="content-card user-center-card">
+                        <div class="card-header user-center-header">
+                            <div>
+                                <span class="section-kicker" id="user-center-kicker">PLAYER OVERVIEW</span>
+                                <h2 id="user-center-title">账户概览</h2>
+                                <p class="section-description" id="user-center-description">查看游戏连接状态与账户数据</p>
+                            </div>
+                            <button type="button" class="action-button user-center-refresh" id="user-center-refresh" onclick="refreshUserCenter()">
+                                <i aria-hidden="true" class="fas fa-sync-alt"></i>
+                                刷新
+                            </button>
+                        </div>
+                        <div class="user-center-content" id="user-center-content">
+                            <div class="player-overview" id="player-server-status">
+                                <section class="connection-panel">
+                                    <div class="connection-heading">
+                                        <div class="connection-icon" aria-hidden="true">
+                                            <i class="fas fa-plug"></i>
+                                        </div>
+                                        <div>
+                                            <span class="section-kicker">GAME CONNECTION</span>
+                                            <h3>服务器连接</h3>
+                                        </div>
+                                        <div class="server-status" id="server-status-container">
+                                            <i class="fas fa-circle" id="server-status-icon"></i>
+                                            <span id="server-status-text">未登录</span>
+                                        </div>
+                                    </div>
+                                    <div class="connection-account">
+                                        <span>当前账号</span>
+                                        <strong id="server-account">未登录</strong>
+                                    </div>
+                                    <div class="connection-stats">
+                                        <div class="overview-stat">
+                                            <i aria-hidden="true" class="fas fa-clock"></i>
+                                            <span class="stat-label">累计在线</span>
+                                            <span class="stat-value" id="online-time">0小时</span>
+                                        </div>
+                                        <div class="overview-stat">
+                                            <i aria-hidden="true" class="fas fa-right-to-bracket"></i>
+                                            <span class="stat-label">最后登录</span>
+                                            <span class="stat-value" id="last-login">从未登录</span>
+                                        </div>
+                                    </div>
+                                    <div class="server-actions connection-actions" id="server-action-buttons">
+                                        <button type="button" class="server-button primary" id="server-login-btn">登录服务器</button>
+                                        <button type="button" class="server-button" id="server-logout-btn">退出服务器</button>
+                                    </div>
+                                </section>
+                                <aside class="account-summary-panel">
+                                    <span class="section-kicker">ACCOUNT DATA</span>
+                                    <h3>账户数据</h3>
+                                    <div class="account-summary-list">
+                                        <div>
+                                            <span>当前积分</span>
+                                            <strong id="center-user-points">0</strong>
+                                        </div>
+                                        <div>
+                                            <span>连续签到</span>
+                                            <strong><b id="center-sign-streak">0</b> 天</strong>
+                                        </div>
+                                        <div>
+                                            <span>累计签到</span>
+                                            <strong><b id="center-sign-total">0</b> 天</strong>
+                                        </div>
+                                    </div>
+                                    <div class="quick-actions">
+                                        <button type="button" class="quick-action" onclick="switchPage('sign-page')">
+                                            <i aria-hidden="true" class="fas fa-calendar-check"></i>
+                                            <span>前往签到</span>
+                                            <i aria-hidden="true" class="fas fa-chevron-right"></i>
+                                        </button>
+                                        <button type="button" class="quick-action" onclick="switchPage('account')">
+                                            <i aria-hidden="true" class="fas fa-gear"></i>
+                                            <span>账户设置</span>
+                                            <i aria-hidden="true" class="fas fa-chevron-right"></i>
+                                        </button>
+                                    </div>
+                                </aside>
+                            </div>
+                            
+                            
+                        </div>
+                    </div>
+                </div>
+                <!-- 服务器状态页面 -->
+                <div class="page-content" id="server-status" style="display:none">
+                    <div class="content-card">
+                        <div class="card-header">
+                            <h2>服务器状态监控</h2>
+                            <div class="actions">
+                                <button type="button" class="action-button" onclick="refreshServerStatus()">刷新状态</button>
+                            </div>
+                        </div>
+                        <div class="server-grid" id="server-status-grid">
+                        </div>
+                    </div>
+                </div>
+                <!-- 修改点1：在账户设置页面添加刷新按钮 -->
+                <div class="page-content" id="account" style="display:none">
+                    <!-- 账户信息卡片 -->
+                    <div class="content-card">
+                        <div class="card-header">
+                            <h2>账户设置</h2>
+                            <div class="actions">
+                                <button type="button" class="action-button" onclick="refreshAccountSettings()">
+                                    <i class="fas fa-sync-alt"></i> 刷新
+                                </button>
+                            </div>
+                        </div>
+                        <div class="account-grid">
+                            <div class="avatar-section">
+                                <div class="avatar-preview">
+                                    <img alt="头像预览" id="avatar-preview" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Ccircle cx='75' cy='60' r='30' fill='%233498db'/%3E%3Ccircle cx='75' cy='150' r='60' fill='%233498db'/%3E%3C/svg%3E">
+                                </div>
+                                <div class="avatar-upload">
+                                    <label class="upload-button" for="avatar-input">
+                                        <i class="fas fa-upload"></i> 上传头像
+                                    </label>
+                                    <input accept="image/png" id="avatar-input" type="file">
+                                </div>
+                                <div class="account-info" id="account-info-section">
+                                    <div class="info-title">积分</div>
+                                    <div class="info-value" id="user-points">0</div>
+                                </div>
+                            </div>
+                            <div class="account-details">
+                                <div class="info-grid">
+                                    <div class="info-card">
+                                        <div class="info-title">用户名</div>
+                                        <div class="info-value" id="account-username">未登录</div>
+                                    </div>
+                                    <div class="info-card">
+                                        <div class="info-title">注册日期</div>
+                                        <div class="info-value" id="join-date">未注册</div>
+                                    </div>
+                                    <div class="info-card">
+                                        <div class="info-title">最后登录</div>
+                                        <div class="info-value" id="last-login-date">从未登录</div>
+                                    </div>
+                                    <div class="info-card">
+                                        <div class="info-title">在线时长</div>
+                                        <div class="info-value" id="online-time-total">0小时</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-header">
+                            <h2>安全设置</h2>
+                        </div>
+                        <div class="security-settings">
+                            <div class="group"><input class="input" id="current-password" placeholder=" " title="请输入当前密码" type="password"><span class="highlight"></span><span class="bar"></span><label for="current-password">当前密码</label></div>
+                            <div class="group"><input class="input" id="new-password" placeholder=" " title="请输入新密码" type="password"><span class="highlight"></span><span class="bar"></span><label for="new-password">新密码</label></div>
+                            <div class="group"><input class="input" id="confirm-password" placeholder=" " title="请再次输入新密码" type="password"><span class="highlight"></span><span class="bar"></span><label for="confirm-password">确认新密码</label></div>
+                            <div class="info-actions">
+                                <button type="button" class="action-button" id="save-password-btn" onclick="changePassword()">保存更改</button>
+                                <button type="button" class="action-button secondary" onclick="clearPasswordFields()">取消</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 新增排行榜页面 -->
+                <div class="page-content" id="leaderboard" style="display:none">
+                    <div class="content-card">
+                        <div class="card-header">
+                            <h2>玩家排行榜</h2>
+                            <div class="actions">
+                                <button type="button" class="action-button" onclick="refreshLeaderboard()">刷新</button>
+                            </div>
+                        </div>
+                        <div class="leaderboard-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>排名</th>
+                                        <th>玩家</th>
+                                        <th>在线时长</th>
+                                        <th>最后登录</th>
+                                        <th>连签天数</th>
+                                        <th>总积分</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leaderboard-body">
+                                    <!-- 排行榜数据将通过JavaScript动态加载 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <!-- 在shop页面添加商品列表和兑换码管理 -->
+                <div class="page-content" id="shop" style="display:none">
+                    <div class="content-card">
+                        <div class="card-header shop-page-header">
+                            <div class="shop-page-heading">
+                                <h2>积分商城</h2>
+                                <p class="shop-page-subtitle">兑换后库存和积分会从服务器自动同步</p>
+                            </div>
+                            <div class="actions">
+                                
+                                
+                                <button type="button" class="action-button" onclick="refreshShop()">
+                                    <i class="fas fa-sync-alt"></i> 刷新
+                                </button>
+                            </div>
+                        </div>
+                        <div class="shop-sync-meta">
+                            <span id="shop-sync-status">等待加载</span>
+                            <span id="shop-item-count">0 件商品</span>
+                        </div>
+                        
+                        <!-- 商品列表 -->
+                        <div class="shop-grid" id="shop-items-grid"></div>
+                        <!-- 兑换码管理 -->
+                        
+                    </div>
+                    <div class="modal" id="coupon-modal" aria-hidden="true" onclick="if (event.target === this) closeCouponModal()" style="display: none;">
+                        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="coupon-modal-title">
+                            <button class="close-button" type="button" aria-label="关闭" title="关闭" onclick="closeCouponModal()"><i aria-hidden="true" class="fas fa-xmark"></i></button>
+                            <div class="modal-header">
+                                <span class="modal-heading-icon is-success" aria-hidden="true"><i class="fas fa-check"></i></span>
+                                <h2 id="coupon-modal-title">兑换成功</h2>
+                            </div>
+                            <div class="modal-body coupon-details">
+                                <div class="coupon-result-field"><span>物品</span><strong id="coupon-item-name"></strong></div>
+                                <div class="coupon-result-field"><span>兑换码</span><strong id="coupon-code"></strong></div>
+                                <p class="coupon-expiry"><i class="fas fa-clock" aria-hidden="true"></i> 请在3天内使用</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button class="server-button" type="button" onclick="closeCouponModal()">完成</button>
+                                <button class="action-button" type="button" onclick="copyCouponCode()">
+                                    <i class="fas fa-copy" aria-hidden="true"></i> 复制兑换码
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 兑换码生成弹窗 -->
+                    
+                    <!-- 添加商品弹窗 -->
+                    
+                </div>
+                <!-- 签到系统页面 -->
+                <div class="page-content" id="sign-page" style="display:none">
+                    <div class="content-card">
+                        <div class="card-header">
+                            <h2>签到系统</h2>
+                            <div class="actions">
+                                <button type="button" class="action-button" id="sign-button" onclick="signIn()">立即签到</button>
+                            </div>
+                        </div>
+                        <!-- 日历容器 -->
+                        <div id="calendar-container">
+                            <div class="calendar" id="calendar"></div>
+                        </div>
+                        <!-- 积分说明 -->
+                        <div class="sign-rewards">
+                            <h3>积分说明</h3>
+                            <div class="points-explanation">
+                                <p><strong>积分计算公式：</strong></p>
+                                <p>每日积分 = <span class="highlight">10</span> + <span class="highlight">min(连签天数, 7) ×
+                                        5</span></p>
+                                <div class="points-table">
+                                    <table>
+                                        <caption>连续签到30天积分明细</caption>
+                                        <thead>
+                                            <tr>
+                                                <th>签到天数</th>
+                                                <th>连续天数</th>
+                                                <th>当日积分</th>
+                                                <th>累计积分</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>1</td>
+                                                <td>1</td>
+                                                <td>15</td>
+                                                <td>15</td>
+                                            </tr>
+                                            <tr>
+                                                <td>2</td>
+                                                <td>2</td>
+                                                <td>20</td>
+                                                <td>35</td>
+                                            </tr>
+                                            <tr>
+                                                <td>3</td>
+                                                <td>3</td>
+                                                <td>25</td>
+                                                <td>60</td>
+                                            </tr>
+                                            <tr>
+                                                <td>4</td>
+                                                <td>4</td>
+                                                <td>30</td>
+                                                <td>90</td>
+                                            </tr>
+                                            <tr>
+                                                <td>5</td>
+                                                <td>5</td>
+                                                <td>35</td>
+                                                <td>125</td>
+                                            </tr>
+                                            <tr>
+                                                <td>6</td>
+                                                <td>6</td>
+                                                <td>40</td>
+                                                <td>165</td>
+                                            </tr>
+                                            <tr>
+                                                <td>7</td>
+                                                <td>7</td>
+                                                <td>45</td>
+                                                <td>210</td>
+                                            </tr>
+                                            <tr>
+                                                <td>8</td>
+                                                <td>7</td>
+                                                <td>45</td>
+                                                <td>255</td>
+                                            </tr>
+                                            <tr>
+                                                <td>9</td>
+                                                <td>7</td>
+                                                <td>45</td>
+                                                <td>300</td>
+                                            </tr>
+                                            <tr>
+                                                <td>10</td>
+                                                <td>7</td>
+                                                <td>45</td>
+                                                <td>345</td>
+                                            </tr>
+                                            <tr>
+                                                <td>...</td>
+                                                <td>...</td>
+                                                <td>...</td>
+                                                <td>...</td>
+                                            </tr>
+                                            <tr class="highlight-row">
+                                                <td>30</td>
+                                                <td>7</td>
+                                                <td>45</td>
+                                                <td><strong>1245</strong></td>
+                                            </tr>
+                                        </tbody>
+                                        <tfoot>
+                                            <tr>
+                                                <td colspan="4">
+                                                    计算公式：第1-7天累计210分 + 第8-30天(23天×45分=1035分) =
+                                                    <strong>1245分</strong>
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                    <table>
+                                        <caption>中途断签示例（第15天断签）</caption>
+                                        <thead>
+                                            <tr>
+                                                <th>阶段</th>
+                                                <th>连续天数</th>
+                                                <th>天数</th>
+                                                <th>阶段积分</th>
+                                                <th>累计积分</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>第1-14天</td>
+                                                <td>1→7</td>
+                                                <td>14</td>
+                                                <td>465</td>
+                                                <td>465</td>
+                                            </tr>
+                                            <tr>
+                                                <td>第15天</td>
+                                                <td>断签</td>
+                                                <td>0</td>
+                                                <td>0</td>
+                                                <td>465</td>
+                                            </tr>
+                                            <tr>
+                                                <td>第16天</td>
+                                                <td>1</td>
+                                                <td>1</td>
+                                                <td>15</td>
+                                                <td>480</td>
+                                            </tr>
+                                            <tr>
+                                                <td>第17天</td>
+                                                <td>2</td>
+                                                <td>1</td>
+                                                <td>20</td>
+                                                <td>500</td>
+                                            </tr>
+                                            <tr>
+                                                <td>...</td>
+                                                <td>...</td>
+                                                <td>...</td>
+                                                <td>...</td>
+                                                <td>...</td>
+                                            </tr>
+                                            <tr>
+                                                <td>第30天</td>
+                                                <td>7</td>
+                                                <td>1</td>
+                                                <td>45</td>
+                                                <td>930</td>
+                                            </tr>
+                                        </tbody>
+                                        <tfoot>
+                                            <tr>
+                                                <td colspan="5">
+                                                    计算公式：前14天465分 + 后15天465分 = <strong>930分</strong>
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                                <div class="points-tips">
+                                    <p><i class="fas fa-lightbulb"></i> <strong>计算说明：</strong></p>
+                                    <ul>
+                                        <li>第1-7天：积分逐步增加，累计<strong>210分</strong></li>
+                                        <li>第8天起：每天固定获得<strong>45分</strong></li>
+                                        <li>断签后：从15分重新开始计算</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 修改技术支持页面内容 -->
+                <div class="page-content" id="support" style="display:none">
+                    <div class="content-card">
+                        <div style="text-align: center; padding: 50px;">
+                            <h2>跳转到LittleSkin皮肤站</h2>
+                            <p>点击下方按钮跳转到皮肤站管理您的皮肤</p>
+                            <button type="button" class="action-button" onclick="window.open('https://littlesk.in', '_blank')" style="margin-top: 20px;">
+                                <i class="fas fa-external-link-alt"></i> 前往皮肤站
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+
+
+<script src="/player.js"></script></body></html>

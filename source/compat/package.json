@@ -1,0 +1,19 @@
+{
+  "name": "gbcserver-compat-checks",
+  "private": true,
+  "version": "0.1.0",
+  "description": "仅用于脱敏隔离环境的 Node 与 Go 接口契约对照",
+  "scripts": {
+    "compare": "node compare.cjs"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "bcryptjs": "3.0.3",
+    "body-parser": "2.3.0",
+    "express": "5.2.1",
+    "minecraft-protocol": "1.68.0",
+    "speakeasy": "2.0.0"
+  }
+}

@@ -1,0 +1,37 @@
+# 放在 nginx 的 http 上下文中；替换域名、证书和可信来源。
+# 如需由 nginx 终止 TLS，可先用 httpport/httpsport 将 GBC 绑定到高位端口。
+server {
+    listen 80;
+    server_name web.example.invalid;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name web.example.invalid;
+    ssl_certificate /etc/nginx/tls/web.fullchain.pem;
+    ssl_certificate_key /etc/nginx/tls/web.key;
+    client_max_body_size 25m;
+
+    # 按实际端口更新来源缩小此列表；不要把无认证 webhook 暴露给任意公网来源。
+    location = /webhook/update-port {
+        allow 127.0.0.1;
+        allow 10.0.0.0/8;
+        allow 172.16.0.0/12;
+        allow 192.168.0.0/16;
+        deny all;
+        proxy_pass http://127.0.0.1:18080;
+        proxy_set_header Host $host;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:18080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Web-Session $http_x_web_session;
+        proxy_set_header X-Admin-Session $http_x_admin_session;
+    }
+}

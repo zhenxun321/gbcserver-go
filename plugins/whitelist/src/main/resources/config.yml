@@ -1,0 +1,5 @@
+# 仅填写内网或 loopback 地址；服务端防火墙也必须限制插件端口来源。
+api-url: "http://127.0.0.1:18094"
+whitelist-token: "CHANGE_ME"
+request-timeout-seconds: 3
+

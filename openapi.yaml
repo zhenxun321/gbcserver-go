@@ -1,0 +1,641 @@
+openapi: 3.1.0
+info:
+  title: GBC Server API
+  version: 1.0.0
+  description: >-
+    GBC Server 当前 HTTP 契约。版本号表示本文档的契约修订号，不表示 URL
+    中存在 /v1 前缀。Web、内网白名单和内网兑换使用独立 listener；插件 listener
+    使用 HTTP，仅供受信私网连接。管理员页面入口可由管理员配置，不属于 API 路径。
+servers:
+  - url: http://localhost:80
+    description: Web/API listener（默认为 0.0.0.0:80）
+tags:
+  - name: Web
+  - name: Player
+  - name: Admin
+  - name: Legacy
+  - name: Plugin Whitelist
+  - name: Plugin Coupons
+paths:
+  /healthz:
+    get:
+      tags: [Web]
+      summary: 检查 Web 服务及数据库
+      responses:
+        '200':
+          description: 服务可用
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, const: ok }
+        '503': { description: 数据库不可用 }
+  /api/publicConfig:
+    get:
+      tags: [Web]
+      summary: 读取公开上传限制
+      responses:
+        '200':
+          description: 不含密钥的公开限制
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, const: true }
+                  limits: { $ref: '#/components/schemas/PublicLimits' }
+  /api/webLogin:
+    post:
+      tags: [Player]
+      summary: 玩家网页登录
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string, format: password }
+      responses:
+        '200':
+          description: 登录结果；业务失败也可能使用 HTTP 200
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      session: { type: string }
+                      username: { type: string }
+        '400': { description: 请求格式或必填字段错误 }
+  /api/adminLogin:
+    post:
+      tags: [Admin]
+      summary: 管理员账户、密码和 TOTP 登录
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, passwd, totp]
+              properties:
+                name: { type: string }
+                passwd: { type: string, format: password }
+                totp: { type: string, minLength: 6, maxLength: 8 }
+      responses:
+        '200':
+          description: 登录结果及独立管理员会话
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      session: { type: string }
+        '429': { description: 来源 IP 登录尝试被限流 }
+  /api/admin/status:
+    get:
+      tags: [Admin]
+      summary: 查询管理员初始化状态
+      description: 不返回管理员安全入口路径。
+      responses:
+        '200':
+          description: 初始化状态
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, initialized]
+                properties:
+                  success: { type: boolean, const: true }
+                  initialized: { type: boolean }
+  /api/admin/setup:
+    post:
+      tags: [Admin]
+      summary: 首次初始化管理员
+      description: 只允许在管理员尚未初始化时调用；服务端将密码转为 bcrypt 后写入 SQLite。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password, totpSecret]
+              properties:
+                username: { type: string, minLength: 1 }
+                password: { type: string, format: password, minLength: 8, maxLength: 72 }
+                totpSecret: { type: string, minLength: 1 }
+      responses:
+        '200': { description: 初始化完成 }
+        '400': { description: 请求无效 }
+        '409': { description: 管理员已初始化 }
+  /api/admin/config:
+    get:
+      tags: [Admin]
+      summary: 读取可管理的运行配置
+      security: [{ AdminSession: [] }]
+      responses:
+        '200':
+          description: 配置值；密码、TOTP 和 SMTP 凭据仅返回已配置标志
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  config: { type: object, additionalProperties: true }
+        '401': { description: 管理员会话无效 }
+    put:
+      tags: [Admin]
+      summary: 永久保存运行配置
+      description: 配置写入 SQLite；监听器、路径等启动配置需重新加载服务后生效。明文 adminPassword 会在服务端转换为 bcrypt。
+      security: [{ AdminSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: { type: string }
+              properties:
+                httpPort: { type: string, pattern: '^[0-9]{1,5}$' }
+                httpsPort: { type: string, pattern: '^[0-9]{1,5}$' }
+                adminPath: { type: string, minLength: 1 }
+                adminUsername: { type: string, minLength: 1 }
+                adminPassword: { type: string, format: password, minLength: 8, maxLength: 72 }
+                adminTOTPSecret: { type: string }
+                whitelistListen: { type: string, example: '127.0.0.1:18094' }
+                couponListen: { type: string, example: '127.0.0.1:18095' }
+                bodyLimitBytes: { type: string }
+                serverID: { type: string, description: 白名单和兑换 token 共用的稳定游戏服标识；须与两种 token 的 server_id 一致 }
+                webhookPath: { type: string }
+                signTimezoneOffset: { type: string }
+                maxOnlineTime: { type: string, example: 1h }
+                onlineMode: { type: string, enum: ['true', 'false'] }
+                mailHost: { type: string }
+                mailPort: { type: string }
+                mailUsername: { type: string }
+                mailPassword: { type: string, format: password }
+                mailFromName: { type: string }
+                mailFromAddress: { type: string, format: email }
+                mailSecure: { type: string, enum: ['true', 'false'] }
+                statusServers:
+                  type: string
+                  description: JSON 列表字符串，例如 [{"name":"电信线路","host":"v4.example","port":25565}]；兼容旧的 name=host:port 格式，名称支持中文。
+                statusAPIs:
+                  type: string
+                  description: JSON 列表字符串，例如 [{"name":"mcsrvstat","url":"https://api.mcsrvstat.us/3/{hostport}"}]；留空使用 mcsrvstat、mcapi.us、minetools 三个默认接口，[] 或 none 禁用。
+                statusTimeout: { type: string, example: 5s }
+                statusCacheTTL: { type: string, example: 25s }
+                mojangEndpoint: { type: string, format: uri }
+                mojangTimeout: { type: string, example: 5s }
+      responses:
+        '200':
+          description: 已保存；需要重载的配置返回 reloadRequired=true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  reloadRequired: { type: boolean }
+                  config: { type: object, additionalProperties: true }
+        '400': { description: 配置键或配置值无效 }
+        '401': { description: 管理员会话无效 }
+  /api/admin/plugin-tokens:
+    get:
+      tags: [Admin]
+      summary: 列出插件令牌
+      description: 只返回令牌元数据，不返回明文 secret 或摘要。
+      security: [{ AdminSession: [] }]
+      responses:
+        '200':
+          description: 当前服务 ID、插件 API 地址和令牌元数据
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, const: true }
+                  serverID: { type: string }
+                  whitelistURL: { type: string, format: uri }
+                  couponURL: { type: string, format: uri }
+                  tokens:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        token_id: { type: string }
+                        server_id: { type: string }
+                        scope: { type: string, enum: [whitelist, coupon.redeem] }
+                        created_at: { type: integer, format: int64 }
+                        expires_at: { type: integer, format: int64 }
+                        revoked_at: { type: integer, format: int64 }
+        '401': { description: 管理员会话无效 }
+    post:
+      tags: [Admin]
+      summary: 签发插件令牌
+      description: 服务端使用当前数据库 serverID。明文 secret 只在本次响应返回，后续列表不再提供。
+      security: [{ AdminSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [scope, apiHost]
+              properties:
+                scope: { type: string, enum: [whitelist, coupon.redeem] }
+                apiHost:
+                  type: string
+                  description: 游戏服可访问的服务端私网 IP 字面地址；端口和接口路径由服务端配置生成。
+                expiresAt: { type: string, format: date-time }
+      responses:
+        '201':
+          description: 已签发；响应包含一次性明文 secret 和生成的插件 API 地址。
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, const: true }
+                  apiURL: { type: string, format: uri }
+                  token:
+                    type: object
+                    properties:
+                      token_id: { type: string }
+                      secret: { type: string }
+                      server_id: { type: string }
+                      scope: { type: string, enum: [whitelist, coupon.redeem] }
+        '400': { description: 权限范围或过期时间无效 }
+        '401': { description: 管理员会话无效 }
+  /api/admin/plugin-tokens/{tokenID}:
+    delete:
+      tags: [Admin]
+      summary: 撤销插件令牌
+      security: [{ AdminSession: [] }]
+      parameters:
+        - name: tokenID
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: 撤销完成 }
+        '401': { description: 管理员会话无效 }
+  /api/admin/control:
+    post:
+      tags: [Admin]
+      summary: 管理服务和开机自启
+      description: 仅管理式 start 运行模式支持；网页单独运行模式不支持该操作。自启操作同步完成后返回 200，reload 和 stop 返回 202。
+      security: [{ AdminSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action: { type: string, enum: [reload, stop, install-autostart, uninstall-autostart] }
+      responses:
+        '200': { description: 当前用户开机自启操作已完成 }
+        '202': { description: 操作已提交 }
+        '400': { description: 操作不支持 }
+        '401': { description: 管理员会话无效 }
+        '500': { description: 当前用户开机自启操作失败 }
+        '503': { description: 当前运行模式不支持或无法提交操作 }
+  /api/userInfo:
+    get:
+      tags: [Player]
+      summary: 读取玩家资料
+      security: [{ WebSession: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Username'
+      responses:
+        '200': { description: 玩家资料和账户状态 }
+        '401': { description: 玩家会话无效 }
+  /api/sign:
+    get:
+      tags: [Player, Legacy]
+      summary: 兼容旧客户端执行每日签到
+      security: [{ WebSession: [] }]
+      responses:
+        '200': { description: 签到业务结果 }
+        '401': { description: 玩家会话无效 }
+    post:
+      tags: [Player]
+      summary: 执行每日签到
+      security: [{ WebSession: [] }]
+      responses:
+        '200': { description: 签到业务结果 }
+        '401': { description: 玩家会话无效 }
+  /api/signHistory:
+    get:
+      tags: [Player]
+      summary: 读取签到历史
+      security: [{ WebSession: [] }]
+      responses:
+        '200': { description: 签到日历、连续天数和总天数 }
+        '401': { description: 玩家会话无效 }
+  /api/leaderboard:
+    get:
+      tags: [Player]
+      summary: 读取排行榜
+      security: [{ WebSession: [] }]
+      responses:
+        '200': { description: 排行榜和当前用户信息 }
+        '401': { description: 会话无效 }
+  /api/uploadAvatar:
+    post:
+      tags: [Player]
+      summary: 上传玩家 PNG 头像（服务端自动压缩）
+      security: [{ WebSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, avatar]
+              properties:
+                username: { type: string }
+                avatar: { type: string, description: PNG data URL }
+      responses:
+        '200': { description: 上传结果 }
+        '401': { description: 玩家会话无效 }
+  /api/uploadItemImage:
+    post:
+      tags: [Admin]
+      summary: 上传商城商品图片（服务端自动压缩）
+      security: [{ AdminSession: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: PNG/JPG/JPEG 图片文件
+                session:
+                  type: string
+                  description: 可选管理员 session；优先使用 X-Admin-Session
+          application/json:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image: { type: string, description: 兼容旧客户端的图片 data URL }
+                name: { type: string, description: 原始文件名，仅用于兼容旧客户端 }
+      responses:
+        '200': { description: 上传结果，成功时返回本地 imageUrl（/items/...） }
+        '401': { description: 管理员会话无效 }
+  /api/serverStatus:
+    get:
+      tags: [Web]
+      summary: 读取 Minecraft 服务器状态
+      responses:
+        '200': { description: 状态探测结果 }
+  /ports:
+    get:
+      tags: [Web, Legacy]
+      summary: 读取端口映射
+      responses:
+        '200': { description: 端口映射对象 }
+  /api:
+    get:
+      tags: [Legacy]
+      summary: 旧版 method 查询接口
+      description: >-
+        使用 query 参数 method 选择旧兼容操作。管理操作要求 X-Admin-Session
+        或 session 参数；玩家操作使用 X-Web-Session。复杂请求优先使用 JSON POST。
+      parameters:
+        - name: method
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [getShopItems, getAllUsers, getCoupons, activateUser, banUser, unbanUser, deleteUser, updateEmail, addShopItem, updateShopItem, deleteShopItem, generateCoupon, deleteCoupon, purchaseItem, changePassword, login, logout, regist, verifyRegist, repasswd, verifyCode, useCoupon]
+      responses:
+        '200': { description: 旧兼容业务响应，需读取 success 字段 }
+        '401': { description: useCoupon 在 Web listener 上禁止调用 }
+    post:
+      servers:
+        - url: http://localhost:80
+          description: Web/API listener（旧 method 分发器）
+        - url: http://localhost:18095
+          description: 内网兑换 listener（仅 useCoupon）
+      tags: [Legacy, Plugin Coupons]
+      summary: Web 旧版 method 分发或内网兑换
+      description: >-
+        Web listener 使用旧版 method 分发器，body 同名字段优先于 query 参数；
+        useCoupon 在 Web listener 上明确拒绝。兑换 listener 只接受 method=useCoupon，
+        要求 coupon.redeem Bearer token、X-Request-ID 和匹配的 requestId。
+        白名单与兑换 listener 供插件通过内网直连，不需要公网反向代理。两种 token 共用数据库配置的
+        serverID，但 scope、token_id 和 secret 必须分别签发；server_id 不匹配返回 403。
+      security: []
+      parameters:
+        - name: X-Request-ID
+          in: header
+          required: false
+          description: 兑换 listener 必填，并须与 JSON requestId 一致；Web listener 不使用此头。
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/LegacyMethodRequest'
+                - $ref: '#/components/schemas/CouponRedemptionRequest'
+      responses:
+        '200': { description: 旧兼容业务响应，需读取 success 字段 }
+        '400': { description: 参数无效 }
+        '401': { description: 会话或插件 token 无效，或 Web listener 拒绝 useCoupon }
+        '403': { description: 插件 token scope 或 server_id 不符，或内网访问策略拒绝 }
+        '409': { description: requestId 已用于不同兑换请求 }
+        '413': { description: 请求体超过配置上限 }
+        '415': { description: Content-Type 不是 application/json }
+        '429': { description: 插件请求频率受限 }
+        '503': { description: 兑换服务不可用 }
+  /webhook/update-port:
+    post:
+      tags: [Web, Legacy]
+      summary: 更新已配置服务的主机和端口
+      description: 默认 webhookPath；实际路径可由数据库配置修改。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, host, port]
+              properties:
+                name: { type: string }
+                host: { type: string }
+                port: { type: integer, minimum: 1, maximum: 65535 }
+      responses:
+        '200': { description: 更新结果 }
+        '400': { description: 参数无效或服务未配置 }
+    get:
+      tags: [Web]
+      summary: 检查 webhook 可用性
+      description: 默认路径下的健康检查为 /webhook/update-port/health。
+      responses:
+        '200': { description: 服务可用 }
+  /check/{username}:
+    servers:
+      - url: http://localhost:18094
+        description: 内网白名单 listener
+    post:
+      tags: [Plugin Whitelist]
+      summary: 校验玩家是否可进入服务器
+      security: [{ WhitelistToken: [] }]
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 已授权，后续需用 attempt ID 确认入服
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  allowed: { type: boolean, const: true }
+                  reason: { type: string }
+                  loginAttemptId: { type: string }
+                  expiresAt: { type: integer, format: int64 }
+        '403': { description: 来源不允许、server_id 不匹配或玩家拒绝 }
+        '503': { description: 白名单服务不可用，客户端必须 fail-closed }
+  /join/{username}:
+    servers:
+      - url: http://localhost:18094
+        description: 内网白名单 listener
+    post:
+      tags: [Plugin Whitelist]
+      summary: 确认玩家完成游戏服登录
+      security: [{ WhitelistToken: [] }]
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema: { type: string }
+        - name: X-Login-Attempt-ID
+          in: header
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: 入服状态 }
+        '403': { description: 登录尝试无效、server_id 不匹配或来源不允许 }
+        '503': { description: 白名单服务不可用 }
+  /heartbeat:
+    servers:
+      - url: http://localhost:18094
+        description: 内网白名单 listener
+    post:
+      tags: [Plugin Whitelist]
+      summary: 更新在线玩家租约
+      security: [{ WhitelistToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [players]
+              properties:
+                players:
+                  type: array
+                  maxItems: 5000
+                  items: { type: string }
+      responses:
+        '200': { description: 心跳和被拒绝玩家列表 }
+        '403': { description: 来源不允许或 server_id 不匹配 }
+        '503': { description: 白名单服务不可用 }
+  /logout/{username}:
+    servers:
+      - url: http://localhost:18094
+        description: 内网白名单 listener
+    post:
+      tags: [Plugin Whitelist]
+      summary: 结束玩家在线租约
+      security: [{ WhitelistToken: [] }]
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: 登出结果 }
+        '403': { description: 来源不允许或 server_id 不匹配 }
+        '503': { description: 白名单服务不可用 }
+components:
+  securitySchemes:
+    WebSession:
+      type: apiKey
+      in: header
+      name: X-Web-Session
+      description: 玩家 session；旧兼容接口部分操作仍允许通过 session 字段传入。
+    AdminSession:
+      type: apiKey
+      in: header
+      name: X-Admin-Session
+      description: 独立管理员 session；不能代替玩家 session。
+    WhitelistToken:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+      description: 每个游戏服独立的 whitelist scope token。
+    CouponToken:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+      description: 与白名单隔离的 coupon.redeem scope token。
+  parameters:
+    Username:
+      name: username
+      in: query
+      required: false
+      schema: { type: string }
+  schemas:
+    LegacyMethodRequest:
+      type: object
+      required: [method]
+      properties:
+        method: { type: string }
+        session: { type: string }
+      additionalProperties: true
+    CouponRedemptionRequest:
+      type: object
+      required: [method, username, code, requestId]
+      properties:
+        method: { type: string, const: useCoupon }
+        username: { type: string }
+        code: { type: string }
+        requestId: { type: string }
+    Result:
+      type: object
+      properties:
+        success: { type: boolean }
+        message: { type: string }
+    PublicLimits:
+      type: object
+      properties:
+        maxAvatarBytes: { type: integer }
+        maxItemImageBytes: { type: integer }
+        maxCouponItemAmount: { type: integer }
+        configuredMaxAvatarBytes: { type: integer }
+        configuredMaxItemImageBytes: { type: integer }
+        bodyLimitBytes: { type: integer }

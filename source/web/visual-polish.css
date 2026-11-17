@@ -1,0 +1,557 @@
+/* 视觉层仅调整布局与呈现，沿用原有页面结构和业务事件。 */
+*, *::before, *::after { letter-spacing: 0; }
+body { background: var(--page); }
+button, a { transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease; }
+.section-kicker, .signals-kicker, .ba-loader-label, .login-logo-kicker, .login-footer { letter-spacing: 0; }
+.effect-reticle { display: none; }
+.effect-ripple { border: 0; background: rgba(var(--effect-blue-rgb), 0.1); }
+.ba-loader-ring::before, .ba-loader-ring::after, .ba-loader-orbit,
+.ba-loader-core, .ba-loader-label::after, .inline-status-loader::after { display: none; }
+.ba-loader-ring { border-right-color: transparent; border-width: 3px; }
+
+/* 官网：通透导航、完整场景与有节奏的内容区。 */
+.welcome-page nav, .status-header {
+    min-height: var(--nav-height);
+    padding-inline: max(28px, calc((100% - 1200px) / 2));
+    gap: 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    backdrop-filter: none;
+}
+.welcome-page nav .brand, .status-brand {
+    display: inline-flex;
+    gap: 12px;
+    max-width: none;
+    padding: 0;
+    color: var(--ink-strong);
+    font-size: 16px;
+    font-weight: 700;
+}
+.brand img, .status-brand img { flex: 0 0 34px; object-fit: cover; border-radius: 8px; }
+.welcome-page nav .brand::before, .status-brand::before { display: none; }
+.welcome-page nav .nav-actions, .status-actions { display: flex; align-items: center; gap: 12px; }
+.welcome-page nav .nav-link { min-height: 40px; padding: 8px 16px; border-radius: 8px; font-size: 14px; }
+.welcome-page nav .nav-link.primary { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.welcome-page nav .nav-link.primary:hover { background: var(--primary-hover); }
+.welcome-page #header {
+    min-height: min(620px, calc(100svh - var(--nav-height) - 80px));
+    background-position: center 53%;
+}
+.welcome-page #header::before { background: rgba(8, 20, 33, 0.24); }
+.welcome-page #header::after { display: none; }
+.welcome-page #header .container {
+    width: min(1256px, 100%);
+    min-height: inherit;
+    padding: 64px 28px;
+    align-items: flex-start;
+}
+.welcome-page #header .container::before {
+    padding: 0;
+    margin-bottom: 20px;
+    border: 0;
+    background: none;
+    color: #e7f0ff;
+    font-size: 12px;
+    font-weight: 600;
+}
+.welcome-page #header h1 { font-size: 52px; line-height: 1.24; margin-bottom: 20px; text-shadow: 0 2px 12px rgba(0,0,0,.16); }
+.welcome-page #header p { font-size: 16px; color: #edf3fb; line-height: 1.9; }
+.welcome-page #header .hero-actions { margin-top: 30px; gap: 12px; }
+.welcome-page #header .hero-actions a { border-radius: 8px; padding: 11px 20px; background: rgba(14, 27, 43, 0.36); border-color: rgba(255,255,255,.5); font-size: 14px; }
+.welcome-page #header .hero-actions a:first-child { background: #fff; color: #234d91; border-color: #fff; }
+.welcome-page #header .hero-actions a:hover { background: #eaf1ff; color: #234d91; border-color: #eaf1ff; }
+.hero-live { font-size: 12px; color: #e3edfb; font-weight: 500; }
+.live-dot { background: #83ddb6; box-shadow: 0 0 0 4px rgba(131,221,182,.14); }
+.server-signals { background: var(--surface); color: var(--ink); border-bottom: 1px solid var(--line); }
+.signals-inner { width: min(1200px, calc(100% - 56px)); padding: 42px 0; gap: 44px; align-items: center; }
+.signals-intro h2 { font-size: 23px; line-height: 1.55; max-width: 370px; color: var(--ink-strong); }
+.signals-intro > p:last-child, .signal span:last-child { color: var(--muted); font-size: 13px; }
+.signals-kicker, .section-kicker { color: var(--primary); font-size: 12px; font-weight: 600; }
+.signal { gap: 10px; border-color: var(--line); }
+.signal strong { color: var(--ink-strong); font-size: 15px; }
+.signal-number { color: var(--primary); font-size: 13px; }
+.welcome-page #introduction { background: var(--page); padding: 12px 0 32px; }
+.welcome-page #introduction > .container { width: min(1200px, calc(100% - 56px)); gap: 64px; padding: 72px 0; }
+.welcome-page #introduction > .container::before, .welcome-page #introduction > .container::after,
+.welcome-page #introduction h1::before { display: none; }
+.welcome-page #introduction h1 { padding: 0; margin: 12px 0 22px; font-size: 28px; line-height: 1.4; }
+.welcome-page #introduction p, .welcome-page #introduction li { font-size: 14px; line-height: 1.9; }
+.welcome-page #introduction .section-kicker { font-size: 12px; color: var(--primary); }
+.welcome-page .img { width: 100%; }
+.welcome-page .img img { aspect-ratio: 4 / 3; border-radius: 8px; border: 1px solid var(--line); box-shadow: var(--shadow); transform: none; }
+.welcome-page .img:hover img, .welcome-page #introduction > .container:nth-child(even) .img img { box-shadow: var(--shadow); transform: none; }
+.welcome-page .img p { margin: 12px 0 0; color: var(--muted); font-size: 12px; }
+.members-table-wrap { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); overflow: auto; }
+.welcome-page table { border: 0; background: var(--surface); }
+.welcome-page th { background: var(--surface-soft); color: var(--muted); font-size: 12px; }
+.welcome-page td { font-size: 13px; }
+.welcome-page th, .welcome-page td { padding: 14px; }
+.welcome-page tbody tr:last-child td { border-bottom: 0; }
+.welcome-page #introduction5 li { padding-block: 3px; }
+.welcome-page #introduction5 li::before { top: 16px; }
+.welcome-page #introduction5 li:first-child::before { background: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+.welcome-page footer, .status-page footer { background: var(--surface); border-top: 1px solid var(--line); color: var(--muted); padding: 26px 20px; font-size: 12px; }
+
+/* 登录与表单：白色实底、统一边框以及清晰的主次操作。 */
+html .system-page .login-container { background: var(--page); padding: 100px 24px 0; flex-direction: column; justify-content: flex-start; }
+.login-container::before, .login-card::before, .login-card::after, .login-logo-kicker::before { display: none; }
+.system-page .login-toolbar { top: 24px; left: 36px; right: 36px; }
+html .system-page .back-home { padding: 6px 0; border: 0; border-radius: 0; background: transparent; color: var(--muted); font-size: 14px; backdrop-filter: none; }
+html .system-page .back-home:hover { background: transparent; color: var(--primary); }
+html .system-page .login-theme-button { background: var(--surface); color: var(--muted); border-color: var(--line); border-radius: 8px; box-shadow: none; backdrop-filter: none; transform: none; }
+html .system-page .login-theme-button:hover { color: var(--primary); background: var(--primary-soft); }
+html .system-page .login-card { width: min(100%, 424px); padding: 36px 36px 30px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: var(--shadow-raised); backdrop-filter: none; }
+.system-page .login-logo { margin-bottom: 28px; }
+html .system-page .login-logo-image { width: 64px; height: 64px; margin-bottom: 14px; border-radius: 8px; box-shadow: none; }
+html .system-page .login-logo-kicker { display: block; margin-bottom: 9px; padding: 0; border: 0; background: none; color: var(--primary); font-size: 12px; }
+.system-page .login-logo h1 { overflow-wrap: anywhere; font-size: 24px; line-height: 1.5; }
+html .system-page .login-logo p { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+.system-page .login-form { gap: 16px; }
+html .system-page .login-options, html .system-page .register-link { color: var(--muted); font-size: 13px; }
+html .system-page .login-footer { position: static; width: 100%; margin: 24px 0; color: var(--muted); font-size: 12px; }
+html .system-page .group .input, .system-page .input-group input, .system-page .input-group select,
+.system-page .shop-filter input, .system-page .shop-filter select, .system-page .email-edit-input {
+    border-color: var(--line-strong);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 14px;
+}
+html .system-page .group .input:focus, .system-page .input-group input:focus, .system-page .input-group select:focus,
+.system-page .shop-filter input:focus, .system-page .shop-filter select:focus, .system-page .email-edit-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--focus); }
+html .system-page .field-icon, html .system-page .password-toggle { color: var(--muted); }
+html .system-page .password-toggle:hover { color: var(--primary); background: var(--primary-soft); }
+.system-page .group > label { font-size: 13px; }
+.system-page .group .input:focus ~ label, .system-page .group .input:not(:placeholder-shown) ~ label { font-size: 12px; }
+.system-page .login-button, .system-page .action-button, .system-page .server-button, .system-page .upload-button {
+    background: var(--primary); color: var(--on-primary); border: 1px solid var(--primary);
+    border-radius: 8px; box-shadow: none; font-size: 13px; font-weight: 600; letter-spacing: 0;
+}
+.system-page .login-button:hover, .system-page .login-button:focus-visible,
+.system-page .action-button:hover, .system-page .server-button:hover, .system-page .upload-button:hover {
+    background: var(--primary-hover); border-color: var(--primary-hover); box-shadow: none; transform: none; filter: none;
+}
+html .system-page .admin-login-button, .system-page .action-button.secondary,
+.system-page .server-button:not(.primary):not(.danger):not(.success) { background: var(--surface); color: var(--ink); border-color: var(--line-strong); box-shadow: none; }
+html .system-page .admin-login-button:hover, html .system-page .admin-login-button:focus-visible,
+.system-page .action-button.secondary:hover, .system-page .server-button:not(.primary):not(.danger):not(.success):hover { background: var(--surface-hover); border-color: var(--primary); }
+.system-page .server-button.danger { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); }
+.system-page .server-button.success { background: var(--success-soft); color: var(--success); border-color: var(--success); }
+
+/* 管理系统采用无外框的内容区，只为数据项、商品和弹窗保留卡片。 */
+html .system-page .main-system { background: var(--page); }
+.system-page .sidebar { background: var(--sidebar); border-right: 1px solid var(--line); box-shadow: none; }
+.system-page .sidebar-header { padding: 30px 24px 24px; border-color: var(--line); background: transparent; }
+.system-page .sidebar-header::before { width: 34px; height: 34px; content: ""; margin-bottom: 12px; border-radius: 8px; background: url("images/logo.png") center / cover; }
+.system-page .sidebar-header h2 { font-size: 17px; }
+.system-page .sidebar-header p { font-size: 12px; }
+.system-page .nav-item { border: 0; border-radius: 8px; min-height: 44px; margin: 3px 14px; padding: 11px 12px; gap: 12px; }
+.system-page .sidebar-header + .nav-item { margin-top: 20px; }
+.system-page .nav-item:hover { transform: none; color: var(--ink); background: var(--surface-soft); }
+.system-page .nav-item.active { background: var(--primary-soft); color: var(--primary); }
+.system-page .nav-item.active::before { display: none; }
+.system-page .nav-text { font-size: 13px; }
+.system-page .nav-icon { font-size: 15px; }
+.system-page .nav-divider { margin: 14px 26px; }
+.system-page .main-content { max-width: 1480px; padding: 28px 40px 48px; }
+.system-page .header { min-height: 64px; padding: 0 0 24px; margin-bottom: 28px; }
+.system-page .page-title { font-size: 24px; }
+.page-title::before, .page-title::after, .content-card::before, .content-card::after,
+.connection-panel::after, #auth-modal .modal-content::after { display: none; }
+.system-page .user-name { font-size: 13px; }
+html .system-page .content-card { padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; backdrop-filter: none; overflow: visible; }
+.system-page .card-header { margin-bottom: 24px; padding: 0 0 20px; align-items: center; background: transparent; }
+html .system-page .user-center-header { background: transparent; }
+.system-page .card-header h2, .system-page .coupon-section-header h3, .system-page .sign-rewards h3 { font-size: 18px; }
+.system-page .section-description, .system-page .shop-page-subtitle { font-size: 13px; }
+.system-page .section-kicker { margin-bottom: 8px; font-size: 12px; }
+.system-page .user-center-content { padding: 0; }
+.system-page .player-overview { grid-template-columns: minmax(0, 1.35fr) minmax(260px, 1fr); gap: 24px; }
+.system-page .connection-panel, .system-page .account-summary-panel { padding: 24px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: var(--shadow); }
+.system-page .connection-icon { border: 0; }
+.system-page .connection-account { padding: 18px 0; border-left: 0; border-block: 1px solid var(--line); background: transparent; }
+.system-page .connection-account strong { font-size: 15px; }
+.system-page .overview-stat { padding: 12px 0; border: 0; background: transparent; }
+.system-page .stat-value { font-size: 16px; }
+.system-page .connection-actions { padding-top: 12px; gap: 12px; }
+.system-page .account-summary-list { border: 0; margin-top: 16px; }
+.system-page .account-summary-list > div { min-height: 54px; }
+.system-page .account-summary-list strong { font-size: 20px; }
+.system-page .account-summary-list b { font-size: inherit; }
+.system-page .quick-actions { grid-template-columns: 1fr 1fr; gap: 16px; }
+.system-page .quick-action { padding: 10px 0; border: 0; background: transparent; font-size: 12px; }
+.system-page .quick-action > i:first-child { color: var(--primary); }
+.system-page .admin-summary-strip { gap: 16px; margin-bottom: 24px; }
+.system-page .admin-summary-strip > div { display: grid; gap: 10px; padding: 20px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: var(--shadow); }
+.system-page .admin-summary-strip strong { font-size: 28px; font-weight: 650; }
+.system-page .admin-summary-strip > div:nth-child(2) strong { color: var(--success); }
+.system-page .admin-summary-strip > div:nth-child(3) strong { color: var(--warning); }
+.system-page .admin-summary-strip > div:nth-child(4) strong { color: var(--danger); }
+.system-page .user-management, .system-page .leaderboard-table, .system-page .coupon-table-wrap, .system-page .points-table { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.system-page th { padding: 14px 16px; font-size: 12px; font-weight: 600; background: var(--surface-soft); }
+.system-page td { padding: 16px; font-size: 13px; }
+.system-page tbody tr:last-child td { border-bottom: 0; }
+.system-page .server-grid, .system-page .shop-grid { gap: 20px; }
+.system-page .server-card { padding: 24px; border: 1px solid var(--line); background: var(--surface); box-shadow: var(--shadow); }
+.system-page .server-card.offline { border-color: var(--line); }
+.system-page .server-card:hover { transform: none; border-color: var(--line-strong); box-shadow: var(--shadow); }
+.system-page .server-name { font-size: 16px; }
+.system-page .server-address, .system-page .server-motd { font-size: 13px; }
+.system-page .server-status, .system-page .coupon-status { font-size: 12px; }
+.system-page .stat-item { background: transparent; border: 0; padding: 12px 0; }
+.system-page .shop-item-card { background: var(--surface); box-shadow: var(--shadow); }
+.system-page .shop-item-card:hover { transform: translateY(-2px); border-color: var(--line-strong); box-shadow: var(--shadow-raised); }
+.system-page .item-image { aspect-ratio: auto; padding: 0; background: var(--surface-soft); }
+.system-page .item-details { padding: 20px; }
+.system-page .item-name { font-size: 16px; }
+.system-page .item-description { font-size: 13px; line-height: 1.7; }
+.system-page .item-points { background: transparent; color: var(--primary); padding-left: 0; font-size: 17px; }
+.system-page .item-actions { margin-top: 16px; }
+.system-page .shop-admin-toolbar { padding: 0 0 24px; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; }
+.system-page .shop-stat { padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.system-page .shop-stat-value { font-size: 24px; }
+.system-page .shop-admin-toolbar .shop-controls { margin-top: 16px; }
+.system-page .info-card, .system-page .avatar-section { background: var(--surface); box-shadow: var(--shadow); }
+.system-page .calendar-day { border-radius: 8px; background: var(--surface); }
+.system-page .calendar-day.today { background: var(--primary-soft); color: var(--primary); }
+.system-page .calendar-day.signed { background: var(--success-soft); color: var(--success); }
+.system-page .calendar-day.unsigned { background: var(--surface-soft); color: var(--muted); }
+html .system-page .modal { background: var(--overlay); backdrop-filter: blur(6px); }
+html .system-page .modal-content { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: var(--shadow-raised); }
+
+/* 状态页在两种主题中使用同一套状态色和清楚的行分隔。 */
+.status-login { border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; font-size: 13px; }
+.status-page .container { width: min(1256px, 100%); padding: 56px 28px; }
+.status-page .page-heading { margin-bottom: 32px; }
+.status-page .page-heading::after, .status-board::after { display: none; }
+.status-page .page-heading p { margin-bottom: 12px; font-size: 12px; }
+.status-page h1 { font-size: 28px; }
+.status-page .page-heading span { margin-top: 12px; font-size: 13px; }
+.status-page .status-board { border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); }
+.status-page .server-item { min-height: 88px; padding: 24px; grid-template-columns: minmax(140px, 1.1fr) minmax(220px, 1.8fr) 90px minmax(130px, .8fr); }
+.status-page .server-item::before { display: none; }
+.status-page .server-item:nth-child(even) { background: var(--surface); }
+.status-page .server-item:hover { background: var(--surface-soft); }
+.status-page .server-name { font-size: 14px; font-weight: 650; }
+.status-page .server-address { font-size: 13px; font-family: Consolas, "Microsoft YaHei", monospace; }
+.status-page .status-indicator { border-radius: 6px; min-width: 62px; font-size: 12px; }
+.status-page .latency { font-size: 12px; }
+.status-page .status-message-row { color: var(--muted); font-size: 14px; }
+
+@media (max-width: 1100px) {
+    .system-page .main-content { padding-inline: 24px; }
+    .system-page .player-overview { grid-template-columns: minmax(0, 1fr); }
+    .signals-inner { gap: 28px; }
+    .welcome-page #introduction > .container { gap: 40px; }
+}
+@media (max-width: 760px) {
+    :root { --nav-height: 68px; }
+    .welcome-page nav, .status-header { padding-inline: 18px; gap: 12px; }
+    .welcome-page nav .brand, .status-brand { font-size: 14px; gap: 8px; }
+    .welcome-page nav .nav-actions, .status-actions { gap: 6px; }
+    .welcome-page nav .nav-link { font-size: 12px; padding: 7px 10px; }
+    .theme-button { width: 36px; height: 36px; flex-basis: 36px; }
+    .welcome-page #header { min-height: min(580px, calc(100svh - var(--nav-height) - 64px)); background-position: 56% center; }
+    .welcome-page #header .container { justify-content: center; padding: 40px 24px; }
+    .welcome-page #header h1 { font-size: 36px; }
+    .welcome-page #header p { font-size: 14px; }
+    .welcome-page #header .hero-actions { width: auto; flex-direction: column; gap: 10px; margin-top: 24px; }
+    .welcome-page #header .hero-actions a { width: auto; padding: 10px 16px; }
+    .signals-inner { width: calc(100% - 40px); grid-template-columns: 1fr; padding: 32px 0; }
+    .signals-intro h2 { font-size: 22px; }
+    .signal-list { grid-template-columns: 1fr; gap: 22px; }
+    .signal, .signal:first-child { padding-left: 0; border: 0; }
+    .welcome-page #introduction > .container { width: calc(100% - 40px); grid-template-columns: 1fr; padding: 44px 0; gap: 28px; }
+    .welcome-page #introduction h1 { font-size: 24px; }
+    .welcome-page .members-table-wrap { padding-bottom: 0; }
+    .status-login { font-size: 12px; padding: 8px 10px; }
+    .status-page .container { padding: 36px 20px; }
+    .status-page h1 { font-size: 25px; }
+    .status-page .server-item { grid-template-columns: minmax(0, 1fr) auto; padding: 20px; gap: 10px; }
+    .status-page .server-address, .status-page .latency { grid-column: 1 / -1; text-align: left; }
+}
+@media (max-width: 700px) {
+    .system-page .main-content { padding: 24px 18px calc(var(--mobile-nav-height) + 32px + env(safe-area-inset-bottom)); }
+    .system-page .sidebar { border-right: 0; background: var(--surface); }
+    .system-page .nav-item, .system-page .sidebar-header + .nav-item { width: 72px; min-width: 72px; min-height: var(--mobile-nav-height); margin: 0; padding: 12px 4px; gap: 6px; border-radius: 0; border-top: 3px solid transparent; }
+    .system-page .nav-item.active { border-top-color: var(--primary); }
+    .system-page .nav-text { font-size: 12px; }
+    .system-page .header { min-height: 52px; padding-bottom: 18px; margin-bottom: 24px; }
+    .system-page .page-title { font-size: 22px; }
+    .system-page .card-header { align-items: stretch; gap: 16px; }
+    .system-page .connection-panel, .system-page .account-summary-panel { padding: 20px; }
+    .system-page .connection-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .system-page .connection-heading { gap: 10px; }
+    .system-page .admin-summary-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .system-page .admin-summary-strip > div { padding: 16px; }
+    .system-page .admin-summary-strip strong { font-size: 24px; }
+    .system-page .shop-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
+}
+@media (max-width: 480px) {
+    .welcome-page nav, .status-header { padding-inline: 14px; gap: 8px; }
+    .welcome-page nav .brand, .status-brand { font-size: 12px; }
+    .brand img, .status-brand img { width: 28px; height: 28px; flex-basis: 28px; }
+    .welcome-page nav .nav-link { padding-inline: 7px; font-size: 12px; }
+    .welcome-page nav .nav-actions { gap: 4px; }
+    .welcome-page #header h1 { font-size: 32px; }
+    html .system-page .login-container { padding: 92px 18px 0; }
+    .system-page .login-toolbar { top: 20px; left: 20px; right: 20px; }
+    html .system-page .login-card { padding: 28px 24px; }
+    .system-page .login-options { flex-direction: row; align-items: center; }
+    .system-page .connection-account { gap: 8px; }
+    .system-page .connection-actions > * { flex: 1 1 100px; }
+    .status-login { min-height: 38px; font-size: 12px; padding-inline: 8px; }
+}
+@media (max-width: 350px) {
+    .welcome-page nav .brand img { display: none; }
+    .status-brand img { display: none; }
+    .system-page .quick-actions { grid-template-columns: 1fr; gap: 0; }
+}
+
+/* 方块与细网格呼应游戏主题，装饰不参与点击与布局。 */
+.welcome-page nav, .status-header { box-shadow: 0 2px 16px rgba(24, 56, 110, 0.035); }
+.welcome-page nav .brand img, .status-brand img { box-shadow: 0 0 0 3px var(--primary-soft); }
+.welcome-page #header::after {
+    display: block;
+    right: max(28px, calc((100% - 1200px) / 2));
+    bottom: 32px;
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    box-shadow: -18px 0 0 rgba(255,255,255,.6), -36px 0 0 rgba(255,255,255,.25), 0 -18px 0 rgba(255,255,255,.35);
+}
+.welcome-page #header .container::before { padding-left: 12px; border-left: 3px solid #85bbff; }
+.welcome-page #header .hero-actions a { transition: transform 180ms ease, background-color 180ms ease, box-shadow 180ms ease; }
+.welcome-page #header .hero-actions a:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.15); }
+.live-dot { animation: live-breathe 3s ease-in-out infinite; }
+.signal-number { display: inline-grid; place-items: center; width: 30px; height: 30px; background: var(--primary-soft); border-radius: 6px; }
+.signal:nth-child(2) .signal-number { color: var(--success); background: var(--success-soft); }
+.signal:nth-child(3) .signal-number { color: var(--warning); background: var(--warning-soft); }
+.welcome-page #introduction .img img { box-shadow: 8px 8px 0 var(--primary-soft), var(--shadow); transition: transform 220ms ease, box-shadow 220ms ease; }
+.welcome-page #introduction > .container:nth-child(even) .img img { box-shadow: -8px 8px 0 var(--surface-hover), var(--shadow); }
+.welcome-page #introduction .img:hover img { transform: translateY(-3px); box-shadow: 8px 12px 0 var(--primary-soft), var(--shadow-raised); }
+.welcome-page #introduction > .container::before {
+    display: block; top: 46px; right: 0; width: 36px; height: 24px; border: 0; opacity: .65;
+    background: linear-gradient(var(--decor-line) 1px, transparent 1px), linear-gradient(90deg, var(--decor-line) 1px, transparent 1px);
+    background-size: 12px 12px;
+}
+html .system-page .login-container::before {
+    display: block; position: absolute; inset: 0; height: auto; z-index: 0;
+    background: linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: linear-gradient(transparent, #000 20%, #000 60%, transparent 95%);
+    pointer-events: none;
+}
+.login-decoration { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.scene-block { position: absolute; width: 112px; height: 112px; border: 1px solid var(--decor-line); border-radius: 8px; background: var(--decor-fill); animation: block-drift 9s ease-in-out infinite; }
+.scene-block::before { content: ""; position: absolute; inset: 16px; border: 1px solid var(--decor-line); border-radius: 4px; }
+.scene-block::after { content: ""; position: absolute; right: -13px; bottom: -13px; width: 24px; height: 24px; background: var(--primary-soft); border: 1px solid var(--decor-line); border-radius: 3px; }
+.scene-block-one { top: 170px; left: calc(50% - 460px); transform: rotate(-12deg); }
+.scene-block-two { top: 370px; right: calc(50% - 460px); width: 148px; height: 148px; transform: rotate(12deg); animation-delay: -4s; }
+.scene-block-three { top: 580px; left: calc(50% - 380px); width: 40px; height: 40px; transform: rotate(8deg); animation-delay: -2s; }
+.scene-block-four { top: 190px; right: calc(50% - 360px); width: 32px; height: 32px; transform: rotate(-8deg); animation-delay: -6s; }
+.scene-block-three::before, .scene-block-four::before, .scene-block-three::after, .scene-block-four::after { display: none; }
+html .system-page .login-card { padding-top: 72px; box-shadow: 0 18px 60px rgba(24,70,136,.1), 0 1px 0 var(--card-sheen) inset; }
+html[data-theme="dark"] .system-page .login-card { box-shadow: 0 18px 60px rgba(0,0,0,.3), 0 1px 0 var(--card-sheen) inset; }
+.system-page .login-card::before { display: none; }
+.system-page .login-card::after { display: block; right: 18px; top: 18px; bottom: auto; width: 6px; height: 6px; border-radius: 0; background: rgba(255,255,255,.85); box-shadow: -10px 0 0 rgba(255,255,255,.45), -20px 0 0 rgba(255,255,255,.2); }
+html .system-page .login-logo-image { position: relative; box-shadow: 0 0 0 6px var(--surface), 0 6px 16px rgba(0,0,0,.14); }
+.system-page .login-logo-kicker { padding-top: 4px; }
+.system-page .login-button:not(.admin-login-button) { box-shadow: 0 5px 14px var(--focus), inset 0 1px 0 rgba(255,255,255,.18); transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease; }
+.system-page .login-button:not(.admin-login-button):hover { transform: translateY(-2px); box-shadow: 0 8px 20px var(--focus); }
+.system-page .login-button:not(.admin-login-button):active { transform: translateY(0); }
+.system-page .main-content::before {
+    content: ""; position: absolute; z-index: -1; top: 0; left: 0; right: 0; height: 190px;
+    background: linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 32px 32px; mask-image: linear-gradient(#000, transparent); pointer-events: none;
+}
+.system-page .sidebar-header { position: relative; overflow: hidden; background: var(--surface-soft); }
+.system-page .sidebar-header::after { content: ""; position: absolute; width: 58px; height: 58px; right: -18px; top: 25px; border: 1px solid var(--decor-line); border-radius: 6px; transform: rotate(25deg); box-shadow: 0 0 0 12px var(--decor-fill); pointer-events: none; }
+.system-page .nav-item.active { box-shadow: inset 3px 0 0 var(--primary); }
+.system-page .connection-panel, .system-page .account-summary-panel, .system-page .server-card, .system-page .info-card,
+.system-page .admin-summary-strip > div, .system-page .shop-item-card {
+    position: relative; box-shadow: 0 5px 20px rgba(24,56,110,.045), 0 1px 0 var(--card-sheen) inset;
+    transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+.system-page .connection-panel::before, .system-page .account-summary-panel::before, .system-page .admin-summary-strip > div::before {
+    content: ""; position: absolute; top: -1px; left: 24px; width: 34px; height: 3px; background: var(--primary); border-radius: 0 0 3px 3px;
+}
+.system-page .account-summary-panel::before, .system-page .admin-summary-strip > div:nth-child(2)::before { background: var(--success); }
+.system-page .admin-summary-strip > div:nth-child(3)::before { background: var(--warning); }
+.system-page .admin-summary-strip > div:nth-child(4)::before { background: var(--danger); }
+.system-page .connection-icon { box-shadow: 0 0 0 5px var(--surface-soft); }
+.system-page .server-card { border-top: 3px solid var(--success); }
+.system-page .server-card.offline { border-top-color: var(--danger); }
+.system-page .quick-action > :last-child { transition: transform 180ms ease; }
+.system-page .quick-action:hover > :last-child { transform: translateX(3px); }
+.system-page .item-image img { transition: transform 240ms ease; }
+.system-page .shop-item-card:hover .item-image img { transform: scale(1.025); }
+.status-page .page-heading { padding-left: 78px; }
+.status-page .page-heading::before {
+    content: "\f233"; position: absolute; left: 0; top: 25px; display: grid; place-items: center;
+    width: 56px; height: 56px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--primary-soft); color: var(--primary); font: 900 22px "Font Awesome 6 Free";
+    box-shadow: 5px 5px 0 var(--surface-hover);
+}
+.status-page .page-heading::after {
+    display: block; width: 96px; height: 64px; top: 24px; right: 0; border: 0; opacity: .65;
+    background: linear-gradient(var(--decor-line) 1px, transparent 1px), linear-gradient(90deg, var(--decor-line) 1px, transparent 1px); background-size: 16px 16px;
+}
+.status-page .status-board { border-top: 3px solid var(--primary); box-shadow: var(--shadow-raised); }
+.status-page .server-item::before { display: block; top: 30px; bottom: 30px; left: 0; width: 3px; }
+@media (hover: hover) {
+    .system-page .connection-panel:hover, .system-page .account-summary-panel:hover, .system-page .server-card:hover,
+    .system-page .info-card:hover, .system-page .admin-summary-strip > div:hover { border-color: var(--line-strong); box-shadow: var(--shadow-raised); transform: translateY(-2px); }
+}
+@keyframes block-drift { 0%, 100% { translate: 0 0; } 50% { translate: 0 -12px; } }
+@keyframes live-breathe { 0%, 100% { box-shadow: 0 0 0 4px rgba(131,221,182,.14); } 50% { box-shadow: 0 0 0 7px rgba(131,221,182,.04); } }
+@media (max-width: 760px) {
+    .welcome-page #introduction > .container::before { top: 20px; }
+    .welcome-page #introduction .img img, .welcome-page #introduction > .container:nth-child(even) .img img { box-shadow: 5px 5px 0 var(--primary-soft), var(--shadow); }
+    .status-page .page-heading::after { display: none; }
+    .status-page .page-heading { padding-left: 66px; }
+    .status-page .page-heading::before { width: 46px; height: 46px; font-size: 20px; top: 28px; }
+    .status-page .page-heading span { line-height: 1.7; }
+    .scene-block { opacity: .45; }
+    .scene-block-one { top: 100px; left: -40px; }
+    .scene-block-two { top: 540px; right: -80px; }
+    .scene-block-three, .scene-block-four { display: none; }
+}
+@media (max-width: 700px) { .system-page .nav-item.active { box-shadow: none; } }
+@media (max-width: 480px) { html .system-page .login-card { padding-top: 68px; } }
+
+/* 弹窗统一为独立表单：标题和操作区固定，仅内容区滚动。 */
+html .system-page .modal {
+    padding: 24px;
+    align-items: center;
+    overflow: hidden;
+    overscroll-behavior: contain;
+}
+html .system-page .modal-content {
+    display: flex;
+    flex-direction: column;
+    width: min(100%, 480px);
+    max-width: 480px;
+    max-height: calc(100svh - 48px);
+    max-height: calc(100dvh - 48px);
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    animation: dialog-enter 180ms ease-out;
+}
+.system-page .modal-header {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    gap: 12px;
+    padding: 24px 66px 24px 24px;
+}
+.system-page .modal-header h2 { margin: 0; font-size: 20px; line-height: 1.5; overflow-wrap: anywhere; }
+.modal-heading-icon {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    border-radius: 8px;
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-size: 17px;
+}
+.modal-heading-icon.is-success { background: var(--success-soft); color: var(--success); }
+.system-page .modal .close-button { top: 25px; right: 20px; width: 36px; height: 36px; border-radius: 8px; font-size: 16px; }
+html .system-page .modal-tabs { flex: 0 0 auto; gap: 24px; margin: 0 24px; padding: 0; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; }
+.system-page .modal-tab { min-height: 42px; border-radius: 0; border-bottom: 2px solid transparent; font-size: 14px; }
+html .system-page .modal-tab.active { background: transparent; color: var(--primary); border-bottom-color: var(--primary); box-shadow: none; }
+html .system-page .modal-tabs[hidden] { display: none; }
+.system-page .modal-body {
+    min-height: 0;
+    padding: 24px;
+    gap: 18px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+}
+.system-page .auth-form { gap: 18px; }
+.system-page .modal .group { display: flex; flex-direction: column; gap: 8px; margin: 0; }
+.system-page .modal .group > label,
+.system-page .modal .group .input:focus ~ label,
+.system-page .modal .group .input:not(:placeholder-shown) ~ label {
+    position: static;
+    order: -1;
+    max-width: 100%;
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: normal;
+    pointer-events: auto;
+}
+html .system-page .modal .group .input, .system-page .modal .input-group input, .system-page .modal .input-group select {
+    min-width: 0;
+    min-height: 44px;
+    padding: 10px 12px;
+    border-color: var(--line-strong);
+    line-height: 22px;
+}
+html .system-page .modal .group textarea.input { min-height: 88px; }
+html .system-page .modal .group .input:focus-visible,
+.system-page .modal .input-group input:focus-visible, .system-page .modal .input-group select:focus-visible { outline: 0; }
+html .system-page .modal .group .input:focus,
+.system-page .modal .input-group input:focus, .system-page .modal .input-group select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px var(--focus); }
+.system-page .modal .input-group { min-width: 0; margin: 0; gap: 8px; }
+.system-page .modal .input-group > label { font-size: 13px; line-height: 1.5; }
+.system-page .modal-footer, .system-page .dialog-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex: 0 0 auto;
+    gap: 10px;
+    margin: 0;
+    padding: 18px 24px;
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+}
+.system-page .dialog-actions { margin-top: 6px; padding: 20px 0 0; }
+.system-page .modal .login-button, .system-page .modal .action-button, .system-page .modal .server-button { width: auto; min-height: 42px; padding: 9px 18px; box-shadow: none; }
+.system-page .modal .login-button:not(.admin-login-button):hover { box-shadow: none; transform: none; }
+.system-page .modal .login-button:disabled { transform: none; }
+.system-page .modal .login-button { min-width: 112px; }
+.system-page .modal .countdown { padding: 10px 12px; background: var(--surface-soft); color: var(--muted); border-radius: 6px; font-size: 12px; text-align: left; }
+.system-page .modal .bundle-item { grid-template-columns: minmax(0, 1fr) 82px 40px; gap: 10px; margin: 0 0 12px; }
+.system-page #coupon-item-group .bundle-item { grid-template-columns: minmax(0, 1fr) 90px; margin: 0; }
+.system-page .modal .bundle-remove { grid-column: auto; width: 40px; height: 44px; min-height: 44px; padding: 0; color: var(--danger); border: 1px solid var(--line); background: var(--surface); border-radius: 8px; }
+.system-page .modal .bundle-remove:hover { background: var(--danger-soft); border-color: var(--danger); }
+.system-page .modal #bundle-items-container { margin-top: 8px; }
+.system-page .modal .item-image-upload { margin: 0; }
+html .system-page #item-modal .modal-content { width: min(100%, 640px); max-width: 640px; }
+.system-page #item-modal .modal-body { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.system-page #item-modal .modal-body > * { grid-column: span 6; }
+.system-page #item-modal .item-field-half { grid-column: span 3; }
+.system-page #item-modal .item-field-number { grid-column: span 2; }
+.system-page .modal .coupon-result-field { display: grid; gap: 10px; min-width: 0; }
+.coupon-result-field > span { color: var(--muted); font-size: 13px; }
+.coupon-result-field strong { color: var(--ink-strong); font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+.system-page #coupon-code { padding: 16px; border: 1px dashed var(--line-strong); border-radius: 6px; background: var(--surface-soft); color: var(--primary); font: 600 20px/1.6 Consolas, monospace; overflow-wrap: anywhere; }
+.system-page .coupon-expiry { margin: 0; color: var(--warning); font-size: 13px; }
+.system-page .coupon-expiry i { margin-right: 5px; }
+@keyframes dialog-enter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 700px) {
+    html .system-page .modal { padding: 16px; }
+    html .system-page .modal-content { width: min(100%, 480px) !important; max-width: 480px !important; max-height: calc(100svh - 32px); max-height: calc(100dvh - 32px); border: 1px solid var(--line); border-radius: 8px; }
+    .system-page .modal-header { padding: 20px 58px 20px 20px; gap: 10px; }
+    .system-page .modal-header h2 { font-size: 18px; }
+    .system-page .modal .close-button { right: 14px; top: 22px; }
+    .system-page .modal-body { padding: 20px; }
+    html .system-page .modal-tabs { margin-inline: 20px; }
+    .system-page .modal-footer { padding: 16px 20px; }
+    html .system-page .modal .group .input, .system-page .modal .input-group input, .system-page .modal .input-group select { font-size: 16px; }
+    .system-page .modal .bundle-item { grid-template-columns: minmax(0, 1fr) 64px 36px; gap: 8px; }
+    .system-page .modal .bundle-remove { width: 36px; }
+}
+@media (max-width: 520px) {
+    .system-page #item-modal .item-field-half { grid-column: span 6; }
+    .system-page #item-modal .item-field-number { grid-column: span 3; }
+    .system-page #item-modal .item-field-stock { grid-column: span 6; }
+}

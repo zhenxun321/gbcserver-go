@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme-default="dark" data-theme-storage-key="admin-theme"><head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport">
+    <meta content="#101722" name="theme-color">
+    <title data-site-title="siteName">嘎嘣脆综合管理系统</title>
+    <link href="/images/gbc.jpg" rel="icon" type="image/jpg">
+    <script src="/theme.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <link href="/system-redesign.css" rel="stylesheet">
+    <link href="/interaction-effects.css" rel="stylesheet">
+    <link href="/theme.css" rel="stylesheet">
+    <link href="/visual-polish.css" rel="stylesheet">
+    <script defer src="/site-config.js"></script>
+    
+<link rel="stylesheet" href="admin.css"></head>
+
+<body class="loading system-page admin-page">
+    <div id="page-splash">
+        <div aria-label="系统启动中" class="ba-loader" role="status">
+            <span class="ba-loader-ring"></span>
+            <span class="ba-loader-orbit"></span>
+            <span class="ba-loader-core"></span>
+            <span class="ba-loader-label">SYSTEM START</span>
+        </div>
+    </div>
+    <div id="app">
+        <!-- 通知区域 -->
+        <div class="notification" id="notification"></div>
+        <!-- 加载动画 -->
+        <div class="loading-overlay" id="loading-overlay">
+            <div aria-label="正在同步数据" class="ba-loader" role="status">
+                <span class="ba-loader-ring"></span>
+                <span class="ba-loader-orbit"></span>
+                <span class="ba-loader-core"></span>
+                <span class="ba-loader-label">DATA SYNC</span>
+            </div>
+        </div>
+        <!-- 登录界面 -->
+        <div class="login-container" id="login-page">
+            <div class="login-decoration" aria-hidden="true">
+                <span class="scene-block scene-block-one"></span>
+                <span class="scene-block scene-block-two"></span>
+                <span class="scene-block scene-block-three"></span>
+                <span class="scene-block scene-block-four"></span>
+            </div>
+            <div class="login-toolbar">
+                <a class="back-home" href="/login.html">
+                    <i aria-hidden="true" class="fas fa-arrow-left"></i>
+                    <span>玩家登录</span>
+                </a>
+                <button aria-label="切换深浅主题" class="login-theme-button" data-theme-toggle="" title="切换深浅主题" type="button">
+                    <i aria-hidden="true" class="fas fa-circle-half-stroke"></i>
+                </button>
+            </div>
+            <div class="login-card">
+                <div class="login-logo">
+                    <img alt="" class="login-logo-image" src="/images/logo.png">
+                    <span class="login-logo-kicker">GBC MANAGEMENT</span>
+                    <h1>管理员控制台</h1>
+                    <p>安全管理入口</p>
+                </div>
+                <div class="login-form">
+                    <div class="group has-icon">
+                        <span aria-hidden="true" class="field-icon"><i class="fas fa-user"></i></span>
+                        <input autocomplete="username" class="input" id="login-username" onkeypress="return event.key !== '@'" placeholder=" " title="请输入用户名" type="text"><span class="highlight"></span><span class="bar"></span><label for="login-username">用户名</label>
+                    </div>
+                    <div class="group has-icon has-toggle">
+                        <span aria-hidden="true" class="field-icon"><i class="fas fa-lock"></i></span>
+                        <input autocomplete="current-password" class="input" id="login-password" placeholder=" " title="请输入密码" type="password">
+                        <button aria-label="显示密码" class="password-toggle" onclick="togglePasswordVisibility(this)" title="显示 / 隐藏密码" type="button"><i aria-hidden="true" class="fas fa-eye"></i></button>
+                        <span class="highlight"></span><span class="bar"></span><label for="login-password">密码</label>
+                    </div>
+                    <div class="group admin-login-section has-icon" id="admin-login-section" style="display: block;">
+                        <span aria-hidden="true" class="field-icon"><i class="fas fa-shield-halved"></i></span>
+                        <input autocomplete="one-time-code" class="input" id="login-totp" inputmode="numeric" placeholder=" " title="请输入TOTP验证码" type="text"><span class="highlight"></span><span class="bar"></span><label for="login-totp">TOTP验证码</label>
+                    </div>
+                    
+                    <button class="login-button" id="admin-login-button" onclick="login()" type="button">管理员登录</button>
+                    
+                    
+                <p id="admin-login-status" role="status" aria-live="polite"></p></div>
+            </div><section id="admin-setup-panel" class="login-card admin-setup-card" style="display: none;"><div class="login-logo"><span class="login-logo-kicker">FIRST RUN</span><h2>初始化管理员</h2><p>设置账户、密码和认证器密钥</p></div><form id="admin-setup-form" class="login-form"><div class="group"><input class="input" id="setup-username" required="" autocomplete="username" placeholder=" "><span class="highlight"></span><span class="bar"></span><label for="setup-username">管理员账户</label></div><div class="group"><input class="input" id="setup-password" type="password" minlength="8" required="" autocomplete="new-password" placeholder=" "><span class="highlight"></span><span class="bar"></span><label for="setup-password">管理员密码（至少 8 位）</label></div><div class="group"><input class="input" id="setup-totp" required="" autocomplete="off" placeholder=" "><span class="highlight"></span><span class="bar"></span><label for="setup-totp">TOTP 密钥</label></div><p class="admin-setup-help">请先在身份验证器中创建条目，再填写其密钥。</p><button class="login-button" type="submit">完成初始化</button><p id="admin-auth-status" role="status"></p></form></section>
+            <p class="login-footer">© 2024-2026 <span data-site-field="siteName">嘎嘣脆综合管理系统</span></p>
+        </div>
+        <!-- 注册/忘记密码弹窗 -->
+        
+        <!-- 主系统界面 -->
+        <div class="main-system" id="main-system">
+            <!-- 左侧导航栏 -->
+            <nav aria-label="管理员导航" class="sidebar">
+                <div class="sidebar-header">
+                    <h2 data-site-field="siteName">嘎嘣脆综合管理系统</h2>
+                    <p>综合管理系统</p>
+                </div>
+                <div class="nav-item active" data-page="user-center" onclick="switchPage('user-center')">
+                    <i aria-hidden="true" class="fas fa-users nav-icon"></i>
+                    <span class="nav-text">用户管理</span>
+                </div>
+                
+                <div class="nav-item" data-page="shop" onclick="switchPage('shop')">
+                    <i aria-hidden="true" class="fas fa-store nav-icon"></i>
+                    <span class="nav-text">积分商城</span>
+                </div>
+                
+                
+                <div class="nav-item" data-page="admin-config" onclick="switchPage('admin-config')"><i aria-hidden="true" class="fas fa-sliders nav-icon"></i><span class="nav-text">运行配置</span></div>
+                <div class="nav-item" data-page="plugin-tokens" onclick="switchPage('plugin-tokens')"><i aria-hidden="true" class="fas fa-key nav-icon"></i><span class="nav-text">插件接入</span></div><div class="nav-divider"></div>
+                
+                
+                <div class="nav-divider"></div>
+                <div aria-label="切换深浅主题" class="nav-item theme-item" data-theme-toggle="" id="theme-toggle-item" role="button" tabindex="0">
+                    <i aria-hidden="true" class="fas fa-circle-half-stroke nav-icon"></i>
+                    <span class="nav-text">深色模式</span>
+                </div>
+                <div class="nav-item" onclick="logout()" role="button" tabindex="0">
+                    <i aria-hidden="true" class="fas fa-arrow-right-from-bracket nav-icon"></i>
+                    <span class="nav-text">退出登录</span>
+                </div>
+            </nav>
+            <!-- 主内容区域 -->
+            <div class="main-content">
+                <!-- 头部区域 -->
+                <div class="header">
+                    <h1 class="page-title" id="page-title">用户中心</h1>
+                    <div class="user-info">
+                        <div class="user-avatar">
+                            <img alt="用户头像" id="user-avatar-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='40' r='20' fill='%233498db'/%3E%3Ccircle cx='50' cy='100' r='40' fill='%233498db'/%3E%3C/svg%3E">
+                        </div>
+                        <div class="user-details">
+                            <div class="user-name" id="username-display">管理员</div>
+                            <div class="user-status" id="user-status">在线</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 用户中心页面 -->
+                <div class="page-content" id="user-center">
+                    <div class="content-card user-center-card">
+                        <div class="card-header user-center-header">
+                            <div>
+                                <span class="section-kicker" id="user-center-kicker">PLAYER OVERVIEW</span>
+                                <h2 id="user-center-title">账户概览</h2>
+                                <p class="section-description" id="user-center-description">查看游戏连接状态与账户数据</p>
+                            </div>
+                            <button type="button" class="action-button user-center-refresh" id="user-center-refresh" onclick="refreshUserCenter()">
+                                <i aria-hidden="true" class="fas fa-sync-alt"></i>
+                                刷新
+                            </button>
+                        </div>
+                        <div class="user-center-content" id="user-center-content">
+                            
+                            <!-- 管理员界面：用户管理表格 -->
+                            <div class="admin-user-center" id="admin-user-management" style="display:none">
+                                <div class="admin-summary-strip">
+                                    <div><span>用户总数</span><strong id="admin-user-total">0</strong></div>
+                                    <div><span>正常</span><strong id="admin-user-active">0</strong></div>
+                                    <div><span>待激活</span><strong id="admin-user-inactive">0</strong></div>
+                                    <div><span>已封禁</span><strong id="admin-user-banned">0</strong></div>
+                                </div>
+                                <div class="user-management">
+                                    <table class="user-table">
+                                        <thead>
+                                            <tr>
+                                                <th>用户名</th>
+                                                <th>邮箱</th>
+                                                <th>状态</th>
+                                                <th>注册日期</th>
+                                                <th>最后登录</th>
+                                                <th>在线时长</th>
+                                                <th>操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="user-table-body">
+                                            <!-- 用户数据将通过JavaScript动态加载 -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 服务器状态页面 -->
+                
+                <!-- 修改点1：在账户设置页面添加刷新按钮 -->
+                
+                <!-- 新增排行榜页面 -->
+                
+                <!-- 在shop页面添加商品列表和兑换码管理 -->
+                <div class="page-content admin-only-hidden" id="shop" style="display:none">
+                    <div class="content-card">
+                        <div class="card-header shop-page-header">
+                            <div class="shop-page-heading">
+                                <h2>积分商城</h2>
+                                <p class="shop-page-subtitle">兑换后库存和积分会从服务器自动同步</p>
+                            </div>
+                            <div class="actions">
+                                <button type="button" class="action-button admin-only" id="generate-coupon-btn" onclick="openCouponModal()">
+                                    <i class="fas fa-ticket-alt"></i> 生成兑换码
+                                </button>
+                                <button type="button" class="action-button admin-only" id="add-item-btn" onclick="openItemModal()">
+                                    <i class="fas fa-plus"></i> 添加商品
+                                </button>
+                                <button type="button" class="action-button" onclick="refreshShop()">
+                                    <i class="fas fa-sync-alt"></i> 刷新
+                                </button>
+                            </div>
+                        </div>
+                        <div class="shop-sync-meta">
+                            <span id="shop-sync-status">等待加载</span>
+                            <span id="shop-item-count">0 件商品</span>
+                        </div>
+                        <div class="shop-admin-toolbar admin-only" id="shop-admin-toolbar">
+                            <div class="shop-admin-summary">
+                                <div class="shop-stat">
+                                    <span class="shop-stat-label">商品总数</span>
+                                    <strong class="shop-stat-value" id="shop-total-count">0</strong>
+                                </div>
+                                <div class="shop-stat">
+                                    <span class="shop-stat-label">可兑换商品</span>
+                                    <strong class="shop-stat-value" id="shop-available-count">0</strong>
+                                </div>
+                                <div class="shop-stat">
+                                    <span class="shop-stat-label">兑换码总数</span>
+                                    <strong class="shop-stat-value" id="shop-coupon-count">0</strong>
+                                </div>
+                            </div>
+                            <div class="shop-controls">
+                                <label class="shop-filter" for="shop-item-search">
+                                    <i class="fas fa-search" aria-hidden="true"></i>
+                                    <input id="shop-item-search" type="search" placeholder="搜索商品名称或物品ID" oninput="applyShopFilters()">
+                                </label>
+                                <label class="shop-filter" for="shop-stock-filter">
+                                    <i class="fas fa-boxes" aria-hidden="true"></i>
+                                    <select id="shop-stock-filter" onchange="applyShopFilters()">
+                                        <option value="all">全部库存</option>
+                                        <option value="available">可兑换</option>
+                                        <option value="soldout">已售罄</option>
+                                        <option value="unlimited">无限库存</option>
+                                    </select>
+                                </label>
+                                <label class="shop-filter" for="shop-sort">
+                                    <i class="fas fa-arrow-down-a-z" aria-hidden="true"></i>
+                                    <select id="shop-sort" onchange="applyShopFilters()">
+                                        <option value="default">默认排序</option>
+                                        <option value="points-asc">积分从低到高</option>
+                                        <option value="points-desc">积分从高到低</option>
+                                        <option value="stock-asc">库存从低到高</option>
+                                        <option value="name">按名称排序</option>
+                                    </select>
+                                </label>
+                            </div>
+                        </div>
+                        <!-- 商品列表 -->
+                        <div class="shop-grid" id="shop-items-grid"></div>
+                        <!-- 兑换码管理 -->
+                        <div id="coupon-management" class="coupon-management" style="display:none;">
+                            <div class="coupon-section-header">
+                                <div>
+                                    <h3>兑换码管理</h3>
+                                    <p>可按兑换码、商品或玩家快速定位记录</p>
+                                </div>
+                                <span class="coupon-summary" id="coupon-visible-count">0 条记录</span>
+                            </div>
+                            <div class="coupon-controls">
+                                <label class="shop-filter" for="coupon-search">
+                                    <i class="fas fa-search" aria-hidden="true"></i>
+                                    <input id="coupon-search" type="search" placeholder="搜索兑换码、商品或玩家" oninput="applyCouponFilters()">
+                                </label>
+                                <label class="shop-filter" for="coupon-status-filter">
+                                    <i class="fas fa-filter" aria-hidden="true"></i>
+                                    <select id="coupon-status-filter" onchange="applyCouponFilters()">
+                                        <option value="all">全部状态</option>
+                                        <option value="available">未使用</option>
+                                        <option value="used">已使用</option>
+                                        <option value="expired">已过期</option>
+                                    </select>
+                                </label>
+                            </div>
+                            <div class="coupon-table-wrap">
+                                <table class="user-table" id="coupons-table">
+                                    <thead>
+                                        <tr>
+                                            <th>兑换码</th>
+                                            <th>商品</th>
+                                            <th>指定玩家</th>
+                                            <th>有效期至</th>
+                                            <th>状态</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="coupons-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 兑换码生成弹窗 -->
+                    <div class="modal" id="generate-coupon-modal" aria-hidden="true" onclick="if (event.target === this) closeGenerateCouponModal()">
+                        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="generate-coupon-title">
+                            <button class="close-button" type="button" aria-label="关闭" title="关闭" onclick="closeGenerateCouponModal()"><i aria-hidden="true" class="fas fa-xmark"></i></button>
+                            <div class="modal-header">
+                                <span class="modal-heading-icon" aria-hidden="true"><i class="fas fa-ticket"></i></span>
+                                <h2 id="generate-coupon-title">生成兑换码</h2>
+                            </div>
+                            <div class="modal-body">
+                                <div class="input-group">
+                                    <label for="coupon-type">类型</label>
+                                    <select id="coupon-type" onchange="toggleCouponType()">
+                                        <option value="item">单个物品</option>
+                                        <option value="bundle">礼包（多个物品）</option>
+                                    </select>
+                                </div>
+                                <div class="input-group" id="coupon-item-group" style="display:none">
+                                    <label>物品</label>
+                                    <div class="bundle-item">
+                                        <div class="group bundle-field select-field"><input autocomplete="off" class="bundle-item-id input" id="coupon-item-id" list="minecraft-item-options" placeholder=" " title="输入或选择MC物品ID" type="text"><span class="highlight"></span><span class="bar"></span><label for="coupon-item-id">MC物品ID</label></div>
+                                        <div class="group bundle-field"><input class="bundle-item-amount input" id="coupon-item-amount" min="1" placeholder=" " title="数量" type="number" value="1"><span class="highlight"></span><span class="bar"></span><label for="coupon-item-amount">数量</label></div>
+                                    </div>
+                                </div>
+                                <div class="input-group" id="coupon-bundle-group" style="display:none">
+                                    <label>礼包物品</label>
+                                    <div id="bundle-items-container">
+                                        <div class="bundle-item">
+                                            <div class="group bundle-field select-field"><input autocomplete="off" class="bundle-item-id input" list="minecraft-item-options" placeholder=" " title="输入或选择MC物品ID" type="text"><span class="highlight"></span><span class="bar"></span><label>MC物品ID</label>
+                                            </div>
+                                            <div class="group bundle-field"><input class="bundle-item-amount input" min="1" placeholder=" " title="数量" type="number" value="1"><span class="highlight"></span><span class="bar"></span><label>数量</label>
+                                            </div><button class="bundle-remove" onclick="removeBundleItem(this)" aria-label="移除此物品" title="移除此物品" type="button"><i aria-hidden="true" class="fas fa-trash-can"></i></button>
+                                        </div>
+                                    </div>
+                                    <button class="server-button small" onclick="addBundleItem()" type="button"><i aria-hidden="true" class="fas fa-plus"></i> 添加物品</button>
+                                </div>
+                                <datalist id="minecraft-item-options"></datalist>
+                                <div class="group"><input class="input" id="coupon-expires" placeholder=" " required="" type="date"><span class="highlight"></span><span class="bar"></span><label for="coupon-expires">过期时间</label></div>
+                                <div class="group"><input class="input" id="coupon-designated" placeholder=" " title="玩家用户名" type="text"><span class="highlight"></span><span class="bar"></span><label for="coupon-designated">指定玩家（可选）</label></div>
+                                <div class="input-group">
+                                    <label for="coupon-one-time">使用限制</label>
+                                    <select id="coupon-one-time">
+                                        <option value="true">所有玩家共用一次</option>
+                                        <option value="false">每位玩家限用一次</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button class="server-button" onclick="closeGenerateCouponModal()" type="button">取消</button>
+                                <button class="login-button" onclick="generateCoupon()" type="button">生成兑换码</button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 添加商品弹窗 -->
+                    <div class="modal" id="item-modal" aria-hidden="true" onclick="if (event.target === this) closeItemModal()">
+                        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="item-modal-title">
+                            <button class="close-button" type="button" aria-label="关闭" title="关闭" onclick="closeItemModal()"><i aria-hidden="true" class="fas fa-xmark"></i></button>
+                            <div class="modal-header">
+                                <span class="modal-heading-icon" aria-hidden="true"><i class="fas fa-box-open"></i></span>
+                                <h2 id="item-modal-title">添加商品</h2>
+                            </div>
+                            <div class="modal-body">
+                                <div class="group item-field-half"><input class="input" id="item-name" placeholder=" " title="输入商品名称" type="text"><span class="highlight"></span><span class="bar"></span><label for="item-name">商品名称</label></div>
+                                <div class="group item-field-half"><input class="input" id="item-id" placeholder=" " title="例如: minecraft:diamond" type="text"><span class="highlight"></span><span class="bar"></span><label for="item-id">物品ID</label></div>
+                                <div class="group item-field-number"><input class="input" id="item-amount" min="1" placeholder=" " title="输入物品数量" type="number" value="1"><span class="highlight"></span><span class="bar"></span><label for="item-amount">物品数量</label></div>
+                                <div class="group item-field-number"><input class="input" id="item-points" placeholder=" " title="输入积分值" type="number"><span class="highlight"></span><span class="bar"></span><label for="item-points">所需积分</label></div>
+                                <div class="group item-field-number item-field-stock"><input class="input" id="item-stock" placeholder=" " title="输入库存数量" type="number"><span class="highlight"></span><span class="bar"></span><label for="item-stock">库存数量</label></div>
+                                <input id="item-image" type="hidden" value="">
+                                <div class="item-image-upload">
+                                    <label class="server-button small" for="item-image-upload">
+                                        <i class="fas fa-upload"></i> 选择并上传图片
+                                    </label>
+                                    <input accept="image/png,image/jpeg" class="item-image-file" id="item-image-upload" type="file">
+                                    <div class="item-image-upload-status" id="item-image-upload-status" role="status">未选择图片，保存时使用默认图片</div>
+                                    <div class="item-image-preview">
+                                        <img alt="商品图片预览" id="item-image-preview" src="/images/default_item.png">
+                                    </div>
+                                </div>
+                                <div class="group"><textarea class="input" id="item-description" placeholder=" " rows="3" title="输入商品描述"></textarea><span class="highlight"></span><span class="bar"></span><label for="item-description">商品描述</label></div>
+                            </div>
+                            <div class="modal-footer">
+                                <button class="server-button" onclick="closeItemModal()" type="button">取消</button>
+                                <button class="login-button" id="save-item-btn" type="button">保存商品</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 签到系统页面 -->
+                
+                <!-- 修改技术支持页面内容 -->
+                
+            <div id="admin-config" class="page-content admin-config-page" style="display: none;"><section id="admin-config-panel" class="admin-panel">
+      <div class="admin-panel-heading config-heading">
+        <div>
+          <span class="admin-panel-kicker">DATABASE SETTINGS</span>
+          <h2>运行配置</h2>
+          <p class="admin-muted">配置会永久写入 SQLite。需要重启的变更可在下方重新加载服务。</p>
+        </div>
+        <span class="admin-badge success">已连接</span>
+      </div>
+      <form id="configForm" class="admin-config-form">
+        <fieldset class="admin-config-group site-branding-group">
+          <legend>站点文案</legend>
+          <div class="admin-field"><label for="siteName">系统名称</label><input id="siteName" data-key="siteName" maxlength="100" required></div>
+          <div class="admin-field"><label for="loginPageTitle">玩家登录页标题</label><input id="loginPageTitle" data-key="loginPageTitle" maxlength="100" required></div>
+          <div class="admin-field"><label for="statusPageTitle">状态页标题</label><input id="statusPageTitle" data-key="statusPageTitle" maxlength="100" required></div>
+          <div class="admin-field wide site-footer-field"><label for="statusPageFooter">状态页页脚</label><input id="statusPageFooter" data-key="statusPageFooter" maxlength="160" required></div>
+        </fieldset>
+        <fieldset class="admin-config-group">
+          <legend>Web 与管理员</legend>
+          <div class="admin-field" data-github-hide><label for="httpPort">HTTP 端口</label><input id="httpPort" data-key="httpPort" type="number" min="1" max="65535"></div>
+          <div class="admin-field" data-github-hide><label for="httpsPort">HTTPS 端口</label><input id="httpsPort" data-key="httpsPort" type="number" min="1" max="65535"></div>
+          <div class="admin-field"><label for="adminPath">管理员安全入口</label><input id="adminPath" data-key="adminPath" placeholder="/admin"></div>
+          <div class="admin-field"><label for="adminUsername">管理员账户</label><input id="adminUsername" data-key="adminUsername" autocomplete="username"></div>
+          <div class="admin-field"><label for="adminPassword">新管理员密码</label><input id="adminPassword" data-key="adminPassword" type="password" minlength="8" autocomplete="new-password" placeholder="留空表示不修改"></div>
+          <div class="admin-field"><label for="adminTOTPSecret">新 TOTP 密钥</label><input id="adminTOTPSecret" data-key="adminTOTPSecret" autocomplete="off" placeholder="留空表示不修改"></div>
+          <div class="admin-field" data-github-hide><label for="bodyLimitBytes">请求体上限（字节）</label><input id="bodyLimitBytes" data-key="bodyLimitBytes" type="number" min="1024"></div>
+          <div class="admin-field" data-github-hide><label for="serverID">插件服务 ID（白名单/兑换）</label><input id="serverID" data-key="serverID"></div>
+          <div class="admin-field wide" data-github-hide><label for="webhookPath">Webhook 路径</label><input id="webhookPath" data-key="webhookPath"></div>
+          <div class="admin-field" data-github-hide><label for="signTimezoneOffset">登录/签到时区偏移</label><input id="signTimezoneOffset" data-key="signTimezoneOffset" type="number" min="-12" max="14"></div>
+          <div class="admin-field" data-github-hide><label for="maxOnlineTime">最长授权时长</label><input id="maxOnlineTime" data-key="maxOnlineTime" placeholder="例如 1h"></div>
+          <div class="admin-field" data-github-hide><label for="onlineMode">正版 UUID 查询</label><select id="onlineMode" data-key="onlineMode"><option value="false">关闭</option><option value="true">开启</option></select></div>
+        </fieldset>
+
+        <fieldset class="admin-config-group" data-github-hide>
+          <legend>内网插件接口</legend>
+          <div class="admin-field"><label for="whitelistListen">白名单监听地址</label><input id="whitelistListen" data-key="whitelistListen" placeholder="127.0.0.1:18094"></div>
+          <div class="admin-field"><label for="couponListen">兑换监听地址</label><input id="couponListen" data-key="couponListen" placeholder="127.0.0.1:18095"></div>
+        </fieldset>
+
+        <fieldset class="admin-config-group" data-github-hide>
+          <legend>目录与证书</legend>
+          <div class="admin-field"><label for="staticDir">网页目录</label><input id="staticDir" data-key="staticDir"></div>
+          <div class="admin-field"><label for="avatarDir">头像目录</label><input id="avatarDir" data-key="avatarDir"></div>
+          <div class="admin-field"><label for="tlsCertFile">TLS 证书链</label><input id="tlsCertFile" data-key="tlsCertFile" placeholder="gbcserver/server.pem"></div>
+          <div class="admin-field"><label for="tlsKeyFile">TLS 私钥</label><input id="tlsKeyFile" data-key="tlsKeyFile" placeholder="gbcserver/server.key"></div>
+        </fieldset>
+
+        <fieldset class="admin-config-group">
+          <legend>邮件与状态</legend>
+          <details class="admin-config-details" data-github-hide>
+            <summary>SMTP 发件配置</summary>
+            <div class="admin-config-details-grid">
+              <div class="admin-field"><label for="mailHost">SMTP 主机</label><input id="mailHost" data-key="mailHost"></div>
+              <div class="admin-field"><label for="mailPort">SMTP 端口</label><input id="mailPort" data-key="mailPort" type="number" min="1" max="65535"></div>
+              <div class="admin-field"><label for="mailUsername">SMTP 用户名</label><input id="mailUsername" data-key="mailUsername"></div>
+              <div class="admin-field"><label for="mailPassword">SMTP 新密码</label><input id="mailPassword" data-key="mailPassword" type="password" autocomplete="new-password" placeholder="留空表示不修改"></div>
+              <div class="admin-field"><label for="mailFromName">发件人名称</label><input id="mailFromName" data-key="mailFromName"></div>
+              <div class="admin-field"><label for="mailFromAddress">发件地址</label><input id="mailFromAddress" data-key="mailFromAddress" type="email"></div>
+              <div class="admin-field"><label for="mailSecure">SMTP 安全</label><select id="mailSecure" data-key="mailSecure"><option value="true">开启</option><option value="false">关闭</option></select></div>
+            </div>
+          </details>
+          <div class="admin-field wide status-list-field">
+            <label for="statusServers-list">状态目标</label>
+            <div id="statusServers-list" class="status-list" aria-live="polite"></div>
+            <input id="statusServers" data-key="statusServers" type="hidden" value="[]">
+            <button id="addStatusServerButton" class="admin-button secondary status-list-add" type="button"><i class="fas fa-plus" aria-hidden="true"></i> 添加状态目标</button>
+          </div>
+          <details class="admin-config-details wide">
+            <summary>备用状态 API</summary>
+            <div class="admin-field wide status-list-field">
+              <label for="statusAPIs-list">状态 API</label>
+              <div id="statusAPIs-list" class="status-list" aria-live="polite"></div>
+              <input id="statusAPIs" data-key="statusAPIs" type="hidden" value="[]">
+              <button id="addStatusAPIButton" class="admin-button secondary status-list-add" type="button"><i class="fas fa-plus" aria-hidden="true"></i> 添加状态 API</button>
+            </div>
+          </details>
+          <div class="admin-field"><label for="statusTimeout">状态超时</label><input id="statusTimeout" data-key="statusTimeout" placeholder="例如 5s"></div>
+          <div class="admin-field"><label for="statusCacheTTL">状态缓存</label><input id="statusCacheTTL" data-key="statusCacheTTL" placeholder="例如 25s"></div>
+          <div class="admin-field"><label for="statusMonitorInterval">采样间隔</label><input id="statusMonitorInterval" data-key="statusMonitorInterval" placeholder="例如 1m"></div>
+          <div class="admin-field"><label for="statusAlertAfter">离线告警阈值</label><input id="statusAlertAfter" data-key="statusAlertAfter" placeholder="例如 2m"></div>
+          <details class="admin-config-details wide" id="statusAlertSettings">
+            <summary>告警通知</summary>
+            <div class="admin-config-details-grid">
+              <div class="admin-field">
+                <label class="admin-toggle" for="statusAlertEmailEnabled"><span>邮件告警</span><input id="statusAlertEmailEnabled" data-key="statusAlertEmailEnabled" type="checkbox"><span class="admin-toggle-track" aria-hidden="true"></span></label>
+                <div class="admin-alert-target" data-alert-target="statusAlertEmailEnabled"><label for="statusAlertEmail">收件邮箱</label><input id="statusAlertEmail" data-key="statusAlertEmail" type="email" autocomplete="email"></div>
+              </div>
+              <div class="admin-field">
+                <label class="admin-toggle" for="statusAlertWebhookEnabled"><span>Webhook 告警</span><input id="statusAlertWebhookEnabled" data-key="statusAlertWebhookEnabled" type="checkbox"><span class="admin-toggle-track" aria-hidden="true"></span></label>
+                <div class="admin-alert-target" data-alert-target="statusAlertWebhookEnabled"><label for="statusAlertWebhookURL">Webhook 地址</label><input id="statusAlertWebhookURL" data-key="statusAlertWebhookURL" type="url" autocomplete="url" placeholder="留空表示不修改"></div>
+              </div>
+              <div class="admin-field">
+                <label class="admin-toggle" for="statusAlertRecoveryEnabled"><span>线路恢复后通知</span><input id="statusAlertRecoveryEnabled" data-key="statusAlertRecoveryEnabled" type="checkbox"><span class="admin-toggle-track" aria-hidden="true"></span></label>
+              </div>
+            </div>
+          </details>
+          <div class="admin-field wide" data-github-hide><label for="mojangEndpoint">Mojang API</label><input id="mojangEndpoint" data-key="mojangEndpoint"></div>
+          <div class="admin-field" data-github-hide><label for="mojangTimeout">Mojang 超时</label><input id="mojangTimeout" data-key="mojangTimeout" placeholder="例如 5s"></div>
+        </fieldset>
+
+        <div class="admin-actions config-actions">
+          <button id="saveConfigButton" class="admin-button primary" type="submit">保存配置</button>
+          <button id="refreshButton" class="admin-button secondary" type="button">重新读取</button>
+          <button id="reloadServiceButton" class="admin-button secondary" type="button">重新加载服务</button>
+          <button id="stopServiceButton" class="admin-button danger" type="button">停止服务</button>
+          <button id="installAutostartButton" class="admin-button secondary" type="button">安装开机自启</button>
+          <button id="uninstallAutostartButton" class="admin-button secondary" type="button">移除开机自启</button>
+          <button id="logoutButton" class="admin-button ghost" type="button">退出登录</button>
+        </div>
+      </form>
+    </section><p id="admin-config-status" class="admin-message" role="status" aria-live="polite"></p><p id="message" class="admin-message" role="status" aria-live="polite"></p></div></div>
+            <div id="plugin-tokens" class="page-content" style="display: none;">
+                <section class="admin-panel">
+                    <div class="admin-panel-heading">
+                        <div>
+                            <span class="admin-panel-kicker">PLUGIN ACCESS</span>
+                            <h2>插件接入</h2>
+                            <p class="admin-muted">服务 ID：<strong id="plugin-server-id">读取中</strong></p>
+                        </div>
+                    </div>
+                    <div class="admin-config-group plugin-token-form">
+                        <div class="admin-field">
+                            <label for="plugin-token-scope">插件权限</label>
+                            <select id="plugin-token-scope">
+                                <option value="whitelist">白名单</option>
+                                <option value="coupon.redeem">兑换码</option>
+                            </select>
+                        </div>
+                        <div class="admin-field">
+                            <label for="plugin-api-host">游戏服可访问的服务端私网 IP</label>
+                            <input id="plugin-api-host" type="text" inputmode="url" autocomplete="off" placeholder="10.20.0.5">
+                        </div>
+                        <div class="admin-field">
+                            <label for="plugin-token-expiry">过期时间</label>
+                            <input id="plugin-token-expiry" type="datetime-local">
+                        </div>
+                        <div class="admin-field plugin-token-submit">
+                            <button id="issue-plugin-token" class="admin-button primary" type="button">签发令牌</button>
+                        </div>
+                    </div>
+                    <p id="plugin-token-status" class="admin-message" role="status" aria-live="polite"></p>
+                    <div id="issued-plugin-token" class="plugin-token-issued" hidden>
+                        <div class="admin-panel-heading">
+                            <h3>新令牌</h3>
+                            <button id="copy-plugin-config" class="admin-button secondary" type="button">复制配置</button>
+                        </div>
+                        <pre id="plugin-config-snippet" class="plugin-token-snippet"></pre>
+                    </div>
+                </section>
+                <section class="admin-panel plugin-token-list-panel">
+                    <div class="admin-panel-heading">
+                        <h2>已签发令牌</h2>
+                        <button id="refresh-plugin-tokens" class="admin-button secondary" type="button">重新读取</button>
+                    </div>
+                    <div id="plugin-token-list" class="plugin-token-list" aria-live="polite"></div>
+                </section>
+            </div>
+        </div>
+        
+    </div>
+
+
+
+<script src="admin-config.js"></script><script src="admin-legacy.js"></script><script src="admin-tokens.js"></script></body></html>
