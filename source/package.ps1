@@ -2,8 +2,6 @@
 param(
     [string]$InputDirectory = '目标文件',
     [string]$OutputDirectory = '目标文件/部署包',
-    [ValidateSet('migration', 'github')]
-    [string]$PackageType = 'github',
     [switch]$NoArchive,
     [switch]$AllowUntrustedWindowsSignature,
     [switch]$SkipWindowsSignatureCheck
@@ -18,13 +16,13 @@ function Resolve-PackagePath([string]$Path) {
 }
 $inputRoot = Resolve-PackagePath $InputDirectory
 $outputRoot = Resolve-PackagePath $OutputDirectory
-$batchName = (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + $PackageType + '-' + [Guid]::NewGuid().ToString('N').Substring(0, 6)
+$batchName = (Get-Date -Format 'yyyyMMdd-HHmmss') + '-github-' + [Guid]::NewGuid().ToString('N').Substring(0, 6)
 $batchRoot = Join-Path $outputRoot $batchName
 $targets = @('windows-386', 'windows-amd64', 'windows-arm64', 'linux-386', 'linux-amd64', 'linux-arm64-aarch64', 'linux-armv5', 'linux-armv6', 'linux-armv7')
 
 # Go 程序不内嵌数据库、头像、商品图片或插件 JAR。
 $githubGuide = Join-Path $PSScriptRoot 'deploy/GitHub管理版说明.md'
-if ($PackageType -eq 'github' -and -not (Test-Path -LiteralPath $githubGuide -PathType Leaf)) {
+if (-not (Test-Path -LiteralPath $githubGuide -PathType Leaf)) {
     throw "GitHub 管理版说明不存在：$githubGuide"
 }
 $buildBinaryPrefix = 'gbcserver-github'
@@ -61,57 +59,29 @@ function Assert-WindowsArtifactSignature([string]$Path) {
     throw "Windows 程序签名未通过信任检查（$($signature.Status)），请使用受信任的组织代码签名证书：$Path"
 }
 
-if ($PackageType -eq 'github') {
-    foreach ($file in $requiredFiles) {
-        if ([IO.Path]::GetExtension($file) -eq '.exe') {
-            Assert-WindowsArtifactSignature $file
-        }
+foreach ($file in $requiredFiles) {
+    if ([IO.Path]::GetExtension($file) -eq '.exe') {
+        Assert-WindowsArtifactSignature $file
     }
 }
 if (Test-Path -LiteralPath $batchRoot) { throw '本批次输出目录已存在，请重新执行以创建新批次。' }
 New-Item -ItemType Directory -Path $batchRoot -Force | Out-Null
-
-$sharedMigrationRoot = $null
-if ($PackageType -eq 'migration') {
-    $sharedMigrationRoot = Join-Path $batchRoot 'migration'
-    New-Item -ItemType Directory -Path $sharedMigrationRoot -Force | Out-Null
-    foreach ($directory in @('遗留输入', '文档', 'plugins', 'source/web')) {
-        $sourcePath = Join-Path $workspaceRoot $directory
-        $destinationPath = Join-Path $sharedMigrationRoot $directory
-        if (Test-Path -LiteralPath $sourcePath) {
-            New-Item -ItemType Directory -Path (Split-Path -Parent $destinationPath) -Force | Out-Null
-            Copy-Item -LiteralPath $sourcePath -Destination $destinationPath -Recurse -Force
-        }
-    }
-    Copy-Item -LiteralPath (Join-Path $workspaceRoot 'README-目录说明.md') -Destination $sharedMigrationRoot -Force
-    if (-not $NoArchive) {
-        Compress-Archive -LiteralPath (Get-ChildItem -LiteralPath $sharedMigrationRoot -Force).FullName -DestinationPath (Join-Path $batchRoot 'gbcserver-migration-resources.zip') -CompressionLevel Optimal
-    }
-}
 
 foreach ($target in $targets) {
     $windows = $target.StartsWith('windows-')
     $extension = if ($windows) { '.exe' } else { '' }
     $sourceBinary = Join-Path $inputRoot "$buildBinaryPrefix-$target$extension"
     $artifactName = "gbcserver-$target$extension"
-    $artifactPath = Join-Path $batchRoot $artifactName
-    if ($PackageType -eq 'github') {
-        $packageRoot = Join-Path $batchRoot ".package-$target"
-        New-Item -ItemType Directory -Path $packageRoot -Force | Out-Null
-        Copy-Item -LiteralPath $sourceBinary -Destination (Join-Path $packageRoot $artifactName) -Force
-        Copy-Item -LiteralPath $githubGuide -Destination $packageRoot -Force
-        if ($NoArchive) {
-            Move-Item -LiteralPath $packageRoot -Destination (Join-Path $batchRoot $target)
-        } else {
-            $archivePath = Join-Path $batchRoot "gbcserver-$target.zip"
-            [IO.Compression.ZipFile]::CreateFromDirectory($packageRoot, $archivePath, [IO.Compression.CompressionLevel]::Optimal, $false)
-            Remove-Item -LiteralPath $packageRoot -Recurse -Force
-        }
+    $packageRoot = Join-Path $batchRoot ".package-$target"
+    New-Item -ItemType Directory -Path $packageRoot -Force | Out-Null
+    Copy-Item -LiteralPath $sourceBinary -Destination (Join-Path $packageRoot $artifactName) -Force
+    Copy-Item -LiteralPath $githubGuide -Destination $packageRoot -Force
+    if ($NoArchive) {
+        Move-Item -LiteralPath $packageRoot -Destination (Join-Path $batchRoot $target)
     } else {
-        Copy-Item -LiteralPath $sourceBinary -Destination $artifactPath
-        if (-not $NoArchive) {
-            Compress-Archive -LiteralPath $artifactPath -DestinationPath (Join-Path $batchRoot "gbcserver-$target.zip") -CompressionLevel Optimal
-        }
+        $archivePath = Join-Path $batchRoot "gbcserver-$target.zip"
+        [IO.Compression.ZipFile]::CreateFromDirectory($packageRoot, $archivePath, [IO.Compression.CompressionLevel]::Optimal, $false)
+        Remove-Item -LiteralPath $packageRoot -Recurse -Force
     }
     Write-Host "部署包已生成：$target"
 }

@@ -1,6 +1,7 @@
 # 本地遗留快照与运行数据
 遗留输入/
 文档/
+HANDOFF.md
 .codex-re-cache/
 gbcserver.tar
 WhiteListSync-1.0.0.jar

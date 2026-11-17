@@ -24,7 +24,8 @@ try {
 }
 
 .\source\build.ps1
-.\source\package.ps1
+# 本地未签名测试包；正式 Windows 发布需要签名文件
+.\source\package.ps1 -SkipWindowsSignatureCheck
 mvn -f .\plugins\whitelist\pom.xml clean package
 mvn -f .\plugins\coupon\pom.xml clean package
 ```
@@ -33,10 +34,9 @@ Go 程序和部署 ZIP 输出到 `目标文件/`。WhiteListSync 与 CouponPlugi
 
 ## 文档
 
-- [目录和运行说明](README-目录说明.md)
-- [部署说明](source/deploy/部署说明.md)
+- [运行与部署](source/deploy/部署说明.md)
+- [管理版压缩包](source/deploy/GitHub管理版说明.md)
 - [API 对接说明](source/deploy/API接口对接.md)
-- [GitHub 管理版说明](source/deploy/GitHub管理版说明.md)
 - [WhiteListSync 插件说明](plugins/whitelist/插件说明.md)
 - [CouponPlugin 插件说明](plugins/coupon/插件说明.md)
 - [OpenAPI 定义](openapi.yaml)
