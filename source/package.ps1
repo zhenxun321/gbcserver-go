@@ -21,9 +21,9 @@ $batchRoot = Join-Path $outputRoot $batchName
 $targets = @('windows-386', 'windows-amd64', 'windows-arm64', 'linux-386', 'linux-amd64', 'linux-arm64-aarch64', 'linux-armv5', 'linux-armv6', 'linux-armv7')
 
 # Go 程序不内嵌数据库、头像、商品图片或插件 JAR。
-$githubGuide = Join-Path $PSScriptRoot 'deploy/GitHub管理版说明.md'
-if (-not (Test-Path -LiteralPath $githubGuide -PathType Leaf)) {
-    throw "GitHub 管理版说明不存在：$githubGuide"
+$releaseGuide = Join-Path $PSScriptRoot 'deploy/gbcserver-go发布说明.md'
+if (-not (Test-Path -LiteralPath $releaseGuide -PathType Leaf)) {
+    throw "gbcserver-go 发布说明不存在：$releaseGuide"
 }
 $buildBinaryPrefix = 'gbcserver-github'
 $requiredFiles = @()
@@ -75,7 +75,7 @@ foreach ($target in $targets) {
     $packageRoot = Join-Path $batchRoot ".package-$target"
     New-Item -ItemType Directory -Path $packageRoot -Force | Out-Null
     Copy-Item -LiteralPath $sourceBinary -Destination (Join-Path $packageRoot $artifactName) -Force
-    Copy-Item -LiteralPath $githubGuide -Destination $packageRoot -Force
+    Copy-Item -LiteralPath $releaseGuide -Destination $packageRoot -Force
     if ($NoArchive) {
         Move-Item -LiteralPath $packageRoot -Destination (Join-Path $batchRoot $target)
     } else {
