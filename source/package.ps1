@@ -50,7 +50,7 @@ function Assert-WindowsArtifactSignature([string]$Path) {
         $signature.SignerCertificate.Subject -eq $signature.SignerCertificate.Issuer
     if ($signature.Status -eq [System.Management.Automation.SignatureStatus]::UnknownError -and
         $AllowUntrustedWindowsSignature -and $isSelfSigned) {
-        Write-Warning "允许未受信任的 Windows 签名进入测试/内部包：$([IO.Path]::GetFileName($Path))；该签名不能让 360 或其他机器信任程序。"
+        Write-Warning "允许自签名的 Windows 程序进入发布包：$([IO.Path]::GetFileName($Path))；Windows 默认不信任此证书，可能显示未知发布者警告。 / Self-signed Windows binary included in release package; Windows does not trust this certificate by default and may show an unknown publisher warning."
         return
     }
     if ($signature.Status -eq [System.Management.Automation.SignatureStatus]::NotSigned) {

@@ -1,16 +1,19 @@
 <div align="center">
-  <img src="source/web/images/logo.png" alt="gbcserver-go logo" width="180">
-  <h1>gbcserver-go</h1>
+  <img src="source/web/images/logo-readme.png" alt="Gbcserver-Go logo" width="180">
+  <h1>Gbcserver-Go</h1>
   <p>面向 Minecraft Java 服务器的网页、管理和插件服务。</p>
   <p>
     <a href="https://github.com/zhenxun321/gbcserver-go/stargazers"><img src="https://img.shields.io/github/stars/zhenxun321/gbcserver-go?style=flat&logo=github&label=Stars" alt="GitHub Stars"></a>
     <a href="https://github.com/zhenxun321/gbcserver-go/network/members"><img src="https://img.shields.io/github/forks/zhenxun321/gbcserver-go?style=flat&logo=github&label=Forks" alt="GitHub Forks"></a>
-    <a href="https://github.com/zhenxun321/gbcserver-go/issues"><img src="https://img.shields.io/github/issues/zhenxun321/gbcserver-go?style=flat&logo=github&label=Issues" alt="GitHub Issues"></a>
+    <a href="https://github.com/zhenxun321/gbcserver-go/releases"><img src="https://img.shields.io/github/v/release/zhenxun321/gbcserver-go?style=flat&logo=github&label=Release" alt="GitHub Release"></a>
     <a href="https://go.dev/"><img src="https://img.shields.io/badge/Go-1.24%2B-00ADD8?style=flat&logo=go&logoColor=white" alt="Go 1.24+"></a>
   </p>
+  <p><a href="README.en.md">English</a></p>
 </div>
 
-gbcserver-go 为 Minecraft Java 服务器提供玩家网页、管理页面、白名单接口和兑换码接口。服务端使用 Go；白名单与兑换功能由独立的 Paper/Leaves 插件连接。
+Gbcserver-Go 为 Minecraft Java 服务器提供玩家网页、管理页面、白名单接口和兑换码接口。服务端使用 Go；白名单与兑换功能由独立的 Paper/Leaves 插件连接。
+
+![玩家登录页 / Player login page](source/web/images/readme-login.png)
 
 ## 能做什么
 
@@ -19,6 +22,10 @@ gbcserver-go 为 Minecraft Java 服务器提供玩家网页、管理页面、白
 - 插件令牌签发、查看、撤销，以及白名单和兑换 listener
 - SQLite 数据存储、配置迁移、图片管理和状态探测
 - Windows、Linux 九个平台构建，Windows 程序使用项目统一 logo
+
+Windows 程序使用自签名代码签名证书。Windows 默认不信任该证书，可能显示未知发布者或安全警告。
+
+Windows binaries are signed with a self-signed code-signing certificate. Windows does not trust it by default and may show an unknown publisher or security warning.
 
 ## 快速开始
 
@@ -53,12 +60,15 @@ try {
 
 .\source\build.ps1
 # 本地未签名测试包；正式 Windows 发布需要签名文件
+# Local unsigned test package only; Windows release binaries require signing.
 .\source\package.ps1 -SkipWindowsSignatureCheck
 mvn -f .\plugins\whitelist\pom.xml clean package
 mvn -f .\plugins\coupon\pom.xml clean package
 ```
 
 Go 程序和部署 ZIP 输出到 `目标文件/`。插件 JAR 分别输出到 `目标文件/plugins/whitelist/` 和 `目标文件/plugins/coupon/`，单独部署到 Paper/Leaves 的 `plugins/` 目录。
+
+正式构建 Windows 发布包时，将自签名证书指纹配置到 `GBC_CODE_SIGN_CERT_THUMBPRINT`，再运行 `source/build.ps1` 和 `source/package.ps1 -AllowUntrustedWindowsSignature`。
 
 ### 启动服务
 
@@ -88,7 +98,7 @@ gbcserver-windows-amd64.exe start --tray
 | 内容 | 文档 |
 | --- | --- |
 | 运行、配置、升级和迁移 | [部署说明](source/deploy/部署说明.md) |
-| 正式版启动 | [gbcserver-go 发布说明](source/deploy/gbcserver-go发布说明.md) |
+| 正式版启动 | [Gbcserver-Go 发布说明](source/deploy/gbcserver-go发布说明.md) |
 | HTTP/API 对接 | [API 接口对接说明](source/deploy/API接口对接.md) |
 | WhiteListSync | [插件说明](plugins/whitelist/插件说明.md) |
 | CouponPlugin | [插件说明](plugins/coupon/插件说明.md) |
