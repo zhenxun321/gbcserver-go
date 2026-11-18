@@ -106,7 +106,3 @@ openapi.yaml             HTTP API 定义
 ## 参与开发
 
 提交修改前请运行 Go 测试、`go vet`，并在需要时重新构建插件和发布包。问题反馈和功能建议请提交到 [GitHub Issues](https://github.com/zhenxun321/gbcserver-go/issues)；代码修改请通过 Pull Request 提交。
-
-## 免责声明
-
-Minecraft 是 Mojang AB 的注册商标。本项目未经 Mojang 或 Microsoft 批准，也不与 Mojang 或 Microsoft 关联。
