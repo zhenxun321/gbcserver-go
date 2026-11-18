@@ -50,7 +50,7 @@ foreach ($fileName in $embeddedRootFiles) {
     }
     Copy-Item -LiteralPath $sourcePath -Destination (Join-Path $embeddedWeb $fileName) -Force
 }
-$embeddedImages = @('logo.png', 'gbc.jpg', 'default_item.png')
+$embeddedImages = @('logo.png', 'default_item.png')
 $embeddedImageDirectory = Join-Path $embeddedWeb 'images'
 New-Item -ItemType Directory -Path $embeddedImageDirectory -Force | Out-Null
 foreach ($imageName in $embeddedImages) {
@@ -114,8 +114,8 @@ try {
         }
 
         $extension = if ($target.GOOS -eq "windows") { ".exe" } else { "" }
-        $output = Join-Path $resolvedOutput ("gbcserver-github-{0}{1}" -f $target.Name, $extension)
-        Write-Host ("构建 GitHub 版 {0}/{1} -> {2}" -f $target.GOOS, $target.GOARCH, $output)
+        $output = Join-Path $resolvedOutput ("gbcserver-{0}{1}" -f $target.Name, $extension)
+        Write-Host ("构建 gbcserver-go {0}/{1} -> {2}" -f $target.GOOS, $target.GOARCH, $output)
         Push-Location $moduleRoot
         try {
             $buildArguments = @('build', '-trimpath', '-ldflags', '-s -w', '-o', $output)

@@ -16,7 +16,7 @@ function Resolve-PackagePath([string]$Path) {
 }
 $inputRoot = Resolve-PackagePath $InputDirectory
 $outputRoot = Resolve-PackagePath $OutputDirectory
-$batchName = (Get-Date -Format 'yyyyMMdd-HHmmss') + '-github-' + [Guid]::NewGuid().ToString('N').Substring(0, 6)
+$batchName = (Get-Date -Format 'yyyyMMdd-HHmmss') + '-release-' + [Guid]::NewGuid().ToString('N').Substring(0, 6)
 $batchRoot = Join-Path $outputRoot $batchName
 $targets = @('windows-386', 'windows-amd64', 'windows-arm64', 'linux-386', 'linux-amd64', 'linux-arm64-aarch64', 'linux-armv5', 'linux-armv6', 'linux-armv7')
 
@@ -25,7 +25,7 @@ $releaseGuide = Join-Path $PSScriptRoot 'deploy/gbcserver-go发布说明.md'
 if (-not (Test-Path -LiteralPath $releaseGuide -PathType Leaf)) {
     throw "gbcserver-go 发布说明不存在：$releaseGuide"
 }
-$buildBinaryPrefix = 'gbcserver-github'
+$buildBinaryPrefix = 'gbcserver'
 $requiredFiles = @()
 foreach ($target in $targets) {
     $extension = if ($target.StartsWith('windows-')) { '.exe' } else { '' }
