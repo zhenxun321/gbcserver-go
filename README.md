@@ -25,8 +25,6 @@ Gbcserver-Go 为 Minecraft Java 服务器提供玩家网页、管理页面、白
 
 Windows 程序使用自签名代码签名证书。Windows 默认不信任该证书，可能显示未知发布者或安全警告。
 
-Windows binaries are signed with a self-signed code-signing certificate. Windows does not trust it by default and may show an unknown publisher or security warning.
-
 ## 快速开始
 
 ### 环境要求
