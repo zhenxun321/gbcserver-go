@@ -1,7 +1,7 @@
 #requires -Version 7.0
 param(
-    [string]$InputDirectory = '目标文件/v1.0.1-build',
-    [string]$OutputDirectory = '目标文件/部署包/v1.0.1',
+    [string]$InputDirectory = '目标文件/v1.0.2-build',
+    [string]$OutputDirectory = '目标文件/部署包/v1.0.2',
     [switch]$NoArchive,
     [switch]$AllowUntrustedWindowsSignature,
     [switch]$SkipWindowsSignatureCheck

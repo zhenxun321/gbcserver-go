@@ -342,7 +342,9 @@ type fallbackFS struct {
 }
 
 func (f fallbackFS) Open(name string) (fs.File, error) {
-	if f.embeddedAdmin && isProtectedAdminAsset("/"+name) {
+	adminAsset := isProtectedAdminAsset("/" + name)
+	sharedMaterialStyles := strings.EqualFold(path.Clean("/"+name), "/material.css")
+	if f.embeddedAdmin && (adminAsset || sharedMaterialStyles) {
 		if file, err := f.fallback.Open(name); err == nil {
 			return file, nil
 		}

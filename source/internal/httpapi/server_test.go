@@ -855,6 +855,7 @@ func TestGitHubReleaseUsesEmbeddedAdminAssetsOverStaleDeploymentFiles(t *testing
 	staticDir := t.TempDir()
 	for name, contents := range map[string]string{
 		"admin.html":      "stale setup with TOTP",
+		"material.css":    "stale material styles",
 		"admin-config.js": "stale setup request",
 		"admin-legacy.js": "stale login script",
 		"admin-tokens.js": "stale token script",
@@ -867,6 +868,7 @@ func TestGitHubReleaseUsesEmbeddedAdminAssetsOverStaleDeploymentFiles(t *testing
 	}
 	embedded := fstest.MapFS{
 		"admin.html":      &fstest.MapFile{Data: []byte("current setup without TOTP")},
+		"material.css":    &fstest.MapFile{Data: []byte("current material styles")},
 		"admin-config.js": &fstest.MapFile{Data: []byte("current setup request")},
 		"admin-legacy.js": &fstest.MapFile{Data: []byte("current login script")},
 		"admin-tokens.js": &fstest.MapFile{Data: []byte("current token script")},
@@ -879,6 +881,7 @@ func TestGitHubReleaseUsesEmbeddedAdminAssetsOverStaleDeploymentFiles(t *testing
 	}
 	for requestPath, expected := range map[string]string{
 		"/admin/":                "current setup without TOTP",
+		"/material.css":          "current material styles",
 		"/admin/admin-config.js": "current setup request",
 		"/admin/admin-legacy.js": "current login script",
 		"/admin/admin-tokens.js": "current token script",

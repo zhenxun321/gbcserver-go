@@ -1,4 +1,4 @@
-# Gbcserver-Go v1.0.1
+# Gbcserver-Go v1.0.2
 
 Gbcserver-Go 为 Minecraft Java 服务器提供玩家登录、签到、商城、管理页面和插件接口。
 
@@ -6,21 +6,23 @@ Gbcserver-Go provides player login, daily check-ins, a shop, an administration p
 
 ## 更新日志
 
-- [新增] 网页和命令行支持简体中文与英文。
-- [新增] 管理员初始化时可跳过双重验证；之后可在管理页面启用。
-- [新增] 启用或更换双重验证时显示本地生成的二维码；换绑时需先验证当前验证码，关闭时需管理员密码和当前验证码。
-- [修复] UTC+0 签到时区被错误当成默认 UTC+8。
-- [修复] 双重验证换绑流程阻止旧会话覆盖已变更的密钥。
-- [修复] 管理员初始化仅接受本机连接，避免远程请求抢先创建账户。
-- [修复] 同一 TOTP 验证码不能重复用于登录或双重验证设置。
-- [修复] 管理员名等动态内容不会被网页翻译改写，补齐令牌管理页英文提示。
-- [修复] 无效初始化密钥不会留下半初始化账户；CLI 错误提示保持所选语言。
-- [修复] Linux 后台启动等待 Web 与插件 listener 就绪；失败时返回错误、清理本次状态和 PID，并保留日志路径。
-- [修复] 正式版升级时使用内嵌管理员页面，旧数据目录文件不会覆盖新初始化页面。
-- [修复] 删除网站用户后，白名单心跳会要求游戏服移除该在线玩家。
-- [修复] 兑换重试固定使用首次请求的玩家名，避免改名后丢失已兑换奖励；明确拒绝会清理重试状态，即使玩家已下线。
-- [修复] 启用双重验证时，管理员登录页正确显示验证码输入框。
-- [更新] 网页图标与二维码使用本地资源。
+- [修复] 统一玩家、管理员和状态页面的颜色、间距、表单、面板与弹窗样式，采用 Material 3 视觉规范。
+- [修复] 状态页标题图标对齐到标题区域，避免漂移和遮挡。
+- [修复] 手机底部导航提供滚动提示，避免主题和退出入口被误认为不可用。
+- [修复] 玩家登录后仍可切换网页语言。
+- [修复] 窄屏表单、配置列表、状态信息和按钮支持换行与单列布局。
+- [更新] 状态页默认页脚显示软件版本 v1.0.2。
+- [更新] 管理员、玩家和状态页面使用随程序打包的本地样式资源。
+
+## Changelog
+
+- [Fixed] Unified player, administrator, and status page colors, spacing, forms, panels, and dialogs with a Material 3 visual style.
+- [Fixed] Aligned the status page heading icon to prevent it from drifting or overlapping content.
+- [Fixed] Added a visible scroll indicator to mobile navigation so theme and sign-out actions remain discoverable.
+- [Fixed] Kept the language switch available after player login.
+- [Fixed] Improved narrow-screen wrapping and single-column layouts for forms, configuration lists, status details, and actions.
+- [Updated] The default status page footer shows software version v1.0.2.
+- [Updated] Administrator, player, and status pages use local styles bundled with the program.
 
 ## 安装与启动
 
@@ -36,24 +38,6 @@ gbcserver-windows-amd64.exe start --tray
 下载包不包含游戏插件。请从项目仓库分别构建 WhiteListSync 和 CouponPlugin，并按部署说明配置连接地址和令牌。
 
 Windows 程序使用自签名代码签名证书。Windows 默认不信任该证书，可能显示未知发布者或安全警告。签名不代表 Windows 或安全软件已信任程序。
-
-## Changelog
-
-- [Added] Simplified Chinese and English support for the web interface and CLI.
-- [Added] Administrator setup can skip two-factor authentication; it can be enabled later in the administration settings.
-- [Added] Two-factor setup displays a locally generated QR code. Rebinding requires the current code before setup; disabling requires the administrator password and current code.
-- [Fixed] UTC+0 check-in timezone was incorrectly treated as the UTC+8 default.
-- [Fixed] Initial administrator setup accepts only loopback connections, preventing remote account takeover during first startup. Use SSH port forwarding for remote administration.
-- [Fixed] TOTP codes cannot be reused for login or two-factor settings.
-- [Fixed] Dynamic account names are excluded from web translation, and token management prompts are translated.
-- [Fixed] Invalid setup secrets no longer leave a partially configured administrator; CLI errors follow the selected language.
-- [Fixed] Linux background startup waits for both Web and plugin listeners. Failed startup returns an error, removes its state and PID files, and reports the log path.
-- [Fixed] Release builds use embedded administrator pages so old files in the data directory cannot override the setup page.
-- [Fixed] Whitelist heartbeat removes online players after their website account is deleted.
-- [Fixed] Coupon retries keep the original player name so a rename cannot lose an already redeemed reward. Definitive rejections clear retry state even if the player disconnects.
-- [Fixed] The administrator login page now shows the code field when two-factor authentication is enabled.
-- [Fixed] Prevented an older session from overwriting a two-factor secret changed by another session.
-- [Updated] Web icons and QR codes use local resources.
 
 ## Install and start
 

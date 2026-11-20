@@ -140,7 +140,7 @@ window.GBC_TRANSLATIONS_PLAYER = {
   '状态接口暂不可用': 'Status service is temporarily unavailable',
   '状态读取失败': 'Failed to read status',
   '数据更新 ': 'Updated ',
-  '© 2024-2026 嘎嘣脆 | 监控系统版本 1.0': '© 2024–2026 GBC | Status monitor v1.0',
+  '© 2024-2026 嘎嘣脆 | 监控系统版本 v1.0.2': '© 2024–2026 GBC | Status monitor v1.0.2',
   '今日已签到': 'Checked in today',
   '立即签到': 'Check in now',
   '签到处理中…': 'Checking in…',

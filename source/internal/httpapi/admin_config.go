@@ -34,7 +34,7 @@ var siteBrandingDefaults = map[string]string{
 	"siteName":         "嘎嘣脆综合管理系统",
 	"loginPageTitle":   "嘎嘣脆综合管理系统",
 	"statusPageTitle":  "实时状态监控",
-	"statusPageFooter": "© 2024-2026 嘎嘣脆 | 监控系统版本 1.0",
+	"statusPageFooter": "© 2024-2026 嘎嘣脆 | 监控系统版本 v1.0.2",
 }
 
 var statusMonitorConfigDefaults = map[string]string{

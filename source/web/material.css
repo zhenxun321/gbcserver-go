@@ -1,0 +1,933 @@
+:root {
+    color-scheme: light;
+    --page: #f7f9fc;
+    --surface: #ffffff;
+    --surface-raised: #ffffff;
+    --surface-soft: #eef2f8;
+    --surface-hover: #e8eef8;
+    --ink: #30343b;
+    --ink-strong: #191c20;
+    --muted: #5d626b;
+    --line: #d9dee8;
+    --line-strong: #747985;
+    --primary: #0b57d0;
+    --primary-hover: #0842a0;
+    --primary-soft: #d3e3fd;
+    --on-primary: #ffffff;
+    --success: #146c2e;
+    --success-soft: #c4eed0;
+    --danger: #b3261e;
+    --danger-soft: #f9dedc;
+    --warning: #8a4b00;
+    --warning-soft: #ffddb2;
+    --sidebar: #f0f4fa;
+    --sidebar-ink: #30343b;
+    --sidebar-muted: #5d626b;
+    --sidebar-line: #d9dee8;
+    --radius: 8px;
+    --radius-card: 8px;
+    --shadow: 0 1px 2px rgba(25, 28, 32, 0.08), 0 2px 6px rgba(25, 28, 32, 0.06);
+    --shadow-raised: 0 4px 12px rgba(25, 28, 32, 0.12);
+    --overlay: rgba(25, 28, 32, 0.48);
+    --focus: rgba(11, 87, 208, 0.22);
+    --effect-blue: #0b57d0;
+    --effect-blue-rgb: 11, 87, 208;
+}
+
+html[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #111318;
+    --surface: #1b1b1f;
+    --surface-raised: #222329;
+    --surface-soft: #252a32;
+    --surface-hover: #30343d;
+    --ink: #c4c7cf;
+    --ink-strong: #e2e2e9;
+    --muted: #a9abb3;
+    --line: #44474f;
+    --line-strong: #8e9099;
+    --primary: #a8c7fa;
+    --primary-hover: #d3e3fd;
+    --primary-soft: #0842a0;
+    --on-primary: #062e6f;
+    --success: #81c995;
+    --success-soft: #193b25;
+    --danger: #f2b8b5;
+    --danger-soft: #601410;
+    --warning: #ffb95a;
+    --warning-soft: #4d2b00;
+    --sidebar: #1b1b1f;
+    --sidebar-ink: #e2e2e9;
+    --sidebar-muted: #a9abb3;
+    --sidebar-line: #44474f;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.28), 0 2px 6px rgba(0, 0, 0, 0.2);
+    --shadow-raised: 0 4px 14px rgba(0, 0, 0, 0.34);
+    --overlay: rgba(0, 0, 0, 0.66);
+    --focus: rgba(168, 199, 250, 0.28);
+    --effect-blue: #a8c7fa;
+    --effect-blue-rgb: 168, 199, 250;
+}
+
+html,
+body {
+    min-width: 320px;
+    max-width: 100%;
+}
+
+body {
+    background: var(--page);
+    color: var(--ink);
+    font-family: Roboto, "Segoe UI", "Microsoft YaHei", sans-serif;
+    line-height: 1.5;
+    overflow-x: clip;
+}
+
+button,
+input,
+select,
+textarea {
+    font-family: inherit;
+    letter-spacing: 0;
+}
+
+button,
+a,
+input,
+select,
+textarea,
+summary,
+[role="button"] {
+    touch-action: manipulation;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[role="button"]:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+}
+
+img,
+svg,
+canvas,
+video {
+    max-width: 100%;
+}
+
+html .system-page .login-container {
+    min-height: 100vh;
+    min-height: 100svh;
+    height: auto;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: max(88px, calc(env(safe-area-inset-top) + 76px)) 20px max(24px, env(safe-area-inset-bottom));
+    background: var(--page);
+}
+
+.system-page .login-decoration,
+.system-page .login-container::before,
+.system-page .login-card::before,
+.system-page .login-card::after {
+    display: none;
+}
+
+html .system-page .login-container::before {
+    display: none;
+}
+
+.system-page .login-toolbar {
+    top: max(16px, env(safe-area-inset-top));
+    right: max(20px, env(safe-area-inset-right));
+    left: max(20px, env(safe-area-inset-left));
+    z-index: 2;
+}
+
+.system-page .back-home,
+.system-page .login-theme-button,
+.system-page .language-toggle,
+.system-page .theme-button {
+    min-height: 40px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: none;
+    backdrop-filter: none;
+}
+
+.system-page .back-home {
+    padding-inline: 12px;
+    text-decoration: none;
+}
+
+.system-page .back-home:hover,
+.system-page .login-theme-button:hover,
+.system-page .language-toggle:hover,
+.system-page .theme-button:hover {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+    color: var(--ink-strong);
+}
+
+html .system-page .login-card {
+    width: min(100%, 440px);
+    min-width: 0;
+    padding: clamp(24px, 6vw, 36px);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    backdrop-filter: none;
+    animation-duration: 250ms;
+}
+
+html[data-theme="dark"] .system-page .login-card {
+    box-shadow: var(--shadow);
+}
+
+.system-page .login-logo {
+    margin-bottom: 24px;
+}
+
+html .system-page .login-logo-image {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 16px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: none;
+}
+
+html .system-page .login-logo-kicker {
+    margin-bottom: 8px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.system-page .login-logo h1,
+.system-page .login-logo h2 {
+    margin: 0;
+    color: var(--ink-strong);
+    font-size: 24px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.system-page .login-logo p {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.system-page .login-form {
+    min-width: 0;
+    gap: 16px;
+}
+
+.system-page .group {
+    min-width: 0;
+}
+
+.system-page .group .input,
+.system-page .input-group input,
+.system-page .input-group select,
+.system-page .shop-filter input,
+.system-page .shop-filter select,
+.system-page .email-edit-input,
+.admin-page .admin-field input,
+.admin-page .admin-field select,
+.admin-page .status-list-control input {
+    width: 100%;
+    min-width: 0;
+    min-height: 48px;
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--ink-strong);
+    box-shadow: none;
+}
+
+.system-page .group .input:focus,
+.system-page .input-group input:focus,
+.system-page .input-group select:focus,
+.system-page .shop-filter input:focus,
+.system-page .shop-filter select:focus,
+.system-page .email-edit-input:focus,
+.admin-page .admin-field input:focus,
+.admin-page .admin-field select:focus,
+.admin-page .status-list-control input:focus {
+    border-color: var(--primary);
+    box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.system-page .group > label {
+    color: var(--muted);
+}
+
+.system-page .field-icon,
+.system-page .password-toggle {
+    color: var(--muted);
+}
+
+.system-page .login-button,
+.system-page .action-button,
+.system-page .server-button,
+.system-page .upload-button,
+.admin-page .admin-button,
+.admin-page .admin-back,
+.admin-page .admin-theme-toggle {
+    min-height: 40px;
+    border: 1px solid var(--line-strong);
+    border-radius: 20px;
+    background: var(--surface);
+    color: var(--ink-strong);
+    box-shadow: none;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-decoration: none;
+    transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.system-page .login-button,
+.system-page .action-button.primary,
+.system-page .server-button.primary,
+.system-page .upload-button,
+.admin-page .admin-button.primary {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--on-primary);
+}
+
+.system-page .login-button:hover,
+.system-page .action-button:hover,
+.system-page .server-button:hover,
+.system-page .upload-button:hover,
+.admin-page .admin-button:hover,
+.admin-page .admin-back:hover {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+    color: var(--ink-strong);
+    box-shadow: none;
+    filter: none;
+    transform: none;
+}
+
+.system-page .login-button:hover,
+.system-page .action-button.primary:hover,
+.system-page .server-button.primary:hover,
+.system-page .upload-button:hover,
+.admin-page .admin-button.primary:hover {
+    border-color: var(--primary-hover);
+    background: var(--primary-hover);
+    color: var(--on-primary);
+}
+
+.system-page .login-button:active,
+.system-page .action-button:active,
+.system-page .server-button:active,
+.admin-page .admin-button:active {
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.16);
+}
+
+.system-page .login-options,
+.system-page .register-link,
+.system-page .login-logo p,
+html .system-page .login-footer {
+    color: var(--muted);
+}
+
+.system-page .login-footer {
+    position: static;
+    width: 100%;
+    margin: 0;
+    font-size: 12px;
+    letter-spacing: 0;
+    text-align: center;
+}
+
+html .system-page .main-system {
+    background: var(--page);
+    background-image: none;
+}
+
+.system-page .sidebar {
+    border-color: var(--sidebar-line);
+    background: var(--sidebar);
+    background-image: none;
+    box-shadow: none;
+    color: var(--sidebar-ink);
+}
+
+.system-page .sidebar-header {
+    border-color: var(--sidebar-line);
+    background: transparent;
+}
+
+.system-page .sidebar-header h2,
+.system-page .sidebar-header p {
+    color: var(--sidebar-ink);
+}
+
+.system-page .sidebar-header p,
+.system-page .nav-item {
+    color: var(--sidebar-muted);
+}
+
+.system-page .nav-item {
+    min-height: 44px;
+    border: 0;
+    border-radius: 8px;
+    transition: background-color 150ms ease, color 150ms ease;
+}
+
+.system-page .nav-item:hover {
+    background: var(--surface-hover);
+    color: var(--ink-strong);
+    transform: none;
+}
+
+.system-page .nav-item.active {
+    background: var(--primary-soft);
+    color: var(--ink-strong);
+}
+
+.system-page .nav-item.active::before,
+.system-page .nav-item.active::after,
+.system-page .sidebar-header::after {
+    display: none;
+}
+
+.system-page .nav-divider {
+    background: var(--sidebar-line);
+}
+
+.system-page .main-content {
+    min-width: 0;
+}
+
+.system-page .header {
+    min-width: 0;
+    flex-wrap: wrap;
+    border-color: var(--line);
+}
+
+.system-page .header-actions {
+    min-width: 0;
+    flex-wrap: wrap;
+}
+
+.system-page .page-title::before,
+.system-page .page-title::after {
+    display: none;
+}
+
+html .system-page .content-card {
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    backdrop-filter: none;
+}
+
+html .system-page .card-header,
+html .system-page .user-center-header {
+    border-color: var(--line);
+    background: var(--surface);
+}
+
+.system-page .connection-panel,
+.system-page .account-summary-panel,
+.system-page .server-card,
+.system-page .info-card,
+.system-page .admin-summary-strip > div,
+.system-page .shop-item-card {
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+}
+
+.system-page .connection-panel::before,
+.system-page .account-summary-panel::before,
+.system-page .admin-summary-strip > div::before,
+.system-page .server-card::before,
+.system-page .page-title::after {
+    display: none;
+}
+
+.system-page .connection-account {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.system-page .player-overview,
+.system-page .admin-summary-strip,
+.system-page .info-grid,
+.system-page .shop-grid,
+.system-page .account-grid,
+.system-page .security-settings {
+    min-width: 0;
+}
+
+.system-page :where(.player-overview, .admin-summary-strip, .info-grid, .shop-grid, .account-grid, .security-settings) > * {
+    min-width: 0;
+}
+
+.system-page table {
+    border-color: var(--line);
+    background: var(--surface);
+}
+
+.system-page th {
+    background: var(--surface-soft);
+    color: var(--muted);
+}
+
+.system-page td,
+.system-page th {
+    overflow-wrap: anywhere;
+}
+
+html .system-page .modal {
+    padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    background: var(--overlay);
+    backdrop-filter: none;
+}
+
+html .system-page .modal-content {
+    width: min(100%, 560px);
+    max-width: 560px;
+    max-height: calc(100vh - 32px);
+    max-height: calc(100dvh - 32px);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    box-shadow: var(--shadow-raised);
+}
+
+.system-page .modal-header,
+.system-page .modal-body,
+.system-page .modal-tabs {
+    min-width: 0;
+}
+
+.system-page .modal-header h2,
+.system-page .modal .group > label {
+    overflow-wrap: anywhere;
+}
+
+.admin-page .admin-shell {
+    width: min(1120px, calc(100% - 32px));
+    padding-top: max(24px, env(safe-area-inset-top));
+}
+
+.admin-page .admin-header {
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: center;
+    border-color: var(--line);
+}
+
+.admin-page .admin-brand,
+.admin-page .admin-panel,
+.admin-page .admin-config-form,
+.admin-page .admin-config-group,
+.admin-page .admin-panel-heading {
+    min-width: 0;
+}
+
+.admin-page .admin-status,
+.admin-page .admin-muted,
+.admin-page .admin-message,
+.admin-page .admin-field label {
+    overflow-wrap: anywhere;
+}
+
+.admin-page .admin-panel {
+    border-color: var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+}
+
+.admin-page .admin-panel-accent {
+    border-top: 1px solid var(--line);
+}
+
+.admin-page .admin-config-group,
+.admin-page .admin-config-details {
+    border-color: var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+}
+
+.admin-page .status-list-row {
+    min-width: 0;
+    border-color: var(--line);
+    border-radius: 8px;
+    background: var(--surface-soft);
+}
+
+.admin-page .status-list-row > *,
+.admin-page .admin-config-details-grid > * {
+    min-width: 0;
+}
+
+.admin-page .admin-toggle-track {
+    border-color: var(--line-strong);
+    background: var(--surface-soft);
+}
+
+.admin-page .admin-toggle input:checked + .admin-toggle-track {
+    border-color: var(--primary);
+    background: var(--primary);
+}
+
+.status-page {
+    --status-radius: 8px;
+    font-family: Roboto, "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+
+.status-page.theme-dark,
+html[data-theme="dark"] .status-page {
+    --status-page: #111318;
+    --status-surface: #1b1b1f;
+    --status-raised: #252a32;
+    --status-line: #44474f;
+    --status-ink: #e2e2e9;
+    --status-muted: #c4c7cf;
+    --status-dim: #a9abb3;
+    --status-accent: #a8c7fa;
+    --status-accent-soft: #0842a0;
+    --status-good: #81c995;
+    --status-good-soft: #193b25;
+    --status-bad: #f2b8b5;
+    --status-bad-soft: #601410;
+    --status-warn: #ffb95a;
+}
+
+.status-page.theme-light,
+html[data-theme="light"] .status-page {
+    --status-page: #f7f9fc;
+    --status-surface: #ffffff;
+    --status-raised: #eef2f8;
+    --status-line: #d9dee8;
+    --status-ink: #191c20;
+    --status-muted: #5d626b;
+    --status-dim: #747985;
+    --status-accent: #0b57d0;
+    --status-accent-soft: #d3e3fd;
+    --status-good: #146c2e;
+    --status-good-soft: #c4eed0;
+    --status-bad: #b3261e;
+    --status-bad-soft: #f9dedc;
+    --status-warn: #8a4b00;
+}
+
+.status-page .status-header {
+    min-width: 0;
+    background: var(--status-surface);
+}
+
+.status-page .status-brand {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.status-page .status-brand span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.status-page .status-actions {
+    flex: 0 0 auto;
+}
+
+.status-page .status-login,
+.status-page .theme-button,
+.status-page .language-toggle {
+    border: 1px solid var(--status-line);
+    background: var(--status-surface);
+    color: var(--status-muted);
+}
+
+.status-page .status-login {
+    border-radius: 20px;
+}
+
+.status-page .theme-button {
+    border-radius: 8px;
+}
+
+.status-page .language-toggle {
+    border-radius: 20px;
+}
+
+.status-page .status-login:hover,
+.status-page .theme-button:hover,
+.status-page .language-toggle:hover {
+    border-color: var(--status-accent);
+    background: var(--status-accent-soft);
+    color: var(--status-ink);
+}
+
+.status-page .status-main {
+    min-width: 0;
+}
+
+.status-page .page-heading {
+    position: relative;
+    min-width: 0;
+    padding-left: 68px;
+}
+
+.status-page .page-heading::before {
+    top: 4px;
+    width: 52px;
+    height: 52px;
+    border-color: var(--status-line);
+    border-radius: 8px;
+    background: var(--status-accent-soft);
+    box-shadow: none;
+}
+
+.status-page .page-heading::after {
+    display: none;
+}
+
+.status-page .server-item,
+.status-page .status-message {
+    min-width: 0;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+}
+
+.status-page .server-name,
+.status-page .server-address,
+.status-page .status-diagnostics dd {
+    overflow-wrap: anywhere;
+}
+
+.status-page .status-history {
+    min-width: 0;
+    gap: 2px;
+}
+
+.status-page .status-history-bar {
+    min-width: 0;
+}
+
+.status-page footer {
+    background: var(--status-surface);
+}
+
+@media (min-width: 701px) {
+    .system-page .main-content {
+        width: calc(100% - var(--sidebar-width));
+    }
+}
+
+@media (max-width: 900px) {
+    .system-page .player-overview,
+    .system-page .admin-summary-strip,
+    .system-page .info-grid,
+    .system-page .account-grid,
+    .system-page .security-settings {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .admin-page .admin-config-group {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .admin-page .admin-config-group > .wide,
+    .admin-page .admin-config-details-grid > .wide {
+        grid-column: auto;
+    }
+
+    .admin-page .status-list-row,
+    .admin-page .status-list-row.status-api-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .admin-page .status-list-row > :last-child {
+        justify-self: start;
+    }
+}
+
+@media (max-width: 700px) {
+    .system-page .main-content {
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+    }
+
+    .system-page .header {
+        gap: 10px;
+    }
+
+    .system-page .header-actions {
+        gap: 8px;
+    }
+
+    .system-page .user-info {
+        min-width: 0;
+    }
+
+    .system-page .sidebar {
+        overscroll-behavior-x: contain;
+        scrollbar-width: thin;
+        scrollbar-color: var(--line-strong) transparent;
+    }
+
+    .system-page .sidebar::-webkit-scrollbar {
+        display: block;
+        height: 4px;
+    }
+
+    .system-page .sidebar::-webkit-scrollbar-thumb {
+        border-radius: 4px;
+        background: var(--line-strong);
+    }
+
+    .system-page .nav-item,
+    .system-page .sidebar-header + .nav-item {
+        flex: 0 0 72px;
+        min-width: 72px;
+        border-top-color: transparent;
+    }
+
+    .system-page .nav-item.active {
+        border-top-color: var(--primary);
+        border-radius: 0;
+    }
+
+    .system-page .nav-text {
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        line-height: 1.15;
+    }
+
+    .admin-page .admin-shell {
+        width: calc(100% - 24px);
+    }
+
+    .admin-page .admin-panel {
+        padding: 20px 16px;
+    }
+
+    .status-page .status-header {
+        gap: 8px;
+        padding-right: max(12px, env(safe-area-inset-right));
+        padding-left: max(12px, env(safe-area-inset-left));
+    }
+
+    .status-page .status-actions {
+        gap: 6px;
+    }
+
+    .status-page .status-main {
+        padding-right: max(14px, env(safe-area-inset-right));
+        padding-left: max(14px, env(safe-area-inset-left));
+    }
+}
+
+@media (max-width: 420px) {
+    html .system-page .login-container {
+        padding-right: max(12px, env(safe-area-inset-right));
+        padding-left: max(12px, env(safe-area-inset-left));
+    }
+
+    .system-page .login-toolbar {
+        right: max(12px, env(safe-area-inset-right));
+        left: max(12px, env(safe-area-inset-left));
+    }
+
+    html .system-page .login-card {
+        padding: 24px 18px;
+    }
+
+    .system-page .header {
+        align-items: flex-start;
+    }
+
+    .system-page .header-actions {
+        flex: 0 0 auto;
+    }
+
+    .system-page .page-title {
+        font-size: 20px;
+        overflow-wrap: anywhere;
+    }
+
+    .admin-page .status-list-row,
+    .admin-page .status-list-row.status-api-row,
+    .admin-page .admin-config-details-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .admin-page .status-list-row > :last-child {
+        grid-column: 1;
+    }
+
+    .status-page .status-brand {
+        gap: 6px;
+        font-size: 12px;
+    }
+
+    .status-page .status-brand img {
+        width: 28px;
+        height: 28px;
+        flex-basis: 28px;
+    }
+
+    .status-page .status-login {
+        min-height: 38px;
+        padding-inline: 8px;
+    }
+
+    .status-page .theme-button,
+    .status-page .language-toggle {
+        width: 38px;
+        height: 38px;
+        min-width: 38px;
+        padding: 0;
+    }
+
+    .status-page .page-heading {
+        padding-left: 56px;
+    }
+
+    .status-page .page-heading::before {
+        width: 42px;
+        height: 42px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

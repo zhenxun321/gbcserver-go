@@ -1,5 +1,5 @@
 param(
-    [string]$OutputDirectory = "目标文件/v1.0.1-build",
+    [string]$OutputDirectory = "目标文件/v1.0.2-build",
     [string]$SigningCertificateThumbprint = '',
     [switch]$RequireWindowsSignature
 )
@@ -41,6 +41,7 @@ $embeddedRootFiles = @(
     'admin.html', 'login.html', 'ping.html', 'admin.css', 'admin-config.js', 'admin-legacy.js',
     'admin-tokens.js', 'player.js', 'status-page.js', 'theme.js', 'site-config.js',
     'interaction-effects.js', 'i18n.js', 'i18n-player.js', 'i18n-admin.js', 'minecraft-items.json', 'system-redesign.css',
+    'material.css',
     'interaction-effects.css', 'theme.css', 'visual-polish.css', 'status-redesign.css'
 )
 foreach ($fileName in $embeddedRootFiles) {
