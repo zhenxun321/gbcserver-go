@@ -37,22 +37,22 @@ func runControlCommand(action string, args []string) int {
 		return code
 	}
 	if action == "stop" && strings.TrimSpace(*dataDir) == "" {
-		fmt.Fprintln(os.Stderr, "--data-dir 不能为空")
+		cliFprintln(os.Stderr, "--data-dir 不能为空")
 		return 2
 	}
 	resolvedDataDir, err := filepath.Abs(strings.TrimSpace(*dataDir))
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "解析 --data-dir 失败:", err)
+		cliFprintln(os.Stderr, "解析 --data-dir 失败:", err)
 		return 2
 	}
 	if err := sendControlCommand(resolvedDataDir, action); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		cliFprintln(os.Stderr, err)
 		return 1
 	}
 	if action == "stop" {
-		fmt.Fprintln(os.Stdout, "停止请求已发送。")
+		cliFprintln(os.Stdout, "停止请求已发送。")
 	} else {
-		fmt.Fprintln(os.Stdout, "重载请求已发送。")
+		cliFprintln(os.Stdout, "重载请求已发送。")
 	}
 	return 0
 }
@@ -61,7 +61,7 @@ func runManagedStart(dataDir, _ string, tray bool) int {
 	commands := make(chan managedCommand, 1)
 	control, err := startControlServer(dataDir, commands)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		cliFprintln(os.Stderr, err)
 		return 1
 	}
 	defer control.Close()
@@ -100,7 +100,7 @@ func runManagedStart(dataDir, _ string, tray bool) int {
 			if processContext.Err() != nil {
 				return 0
 			}
-			fmt.Fprintln(os.Stderr, "GBC Server 启动失败:", err)
+			cliFprintln(os.Stderr, "GBC Server 启动失败:", err)
 			return 1
 		}
 
@@ -120,7 +120,7 @@ func runManagedStart(dataDir, _ string, tray bool) int {
 						if processContext.Err() != nil {
 							return 0
 						}
-						fmt.Fprintln(os.Stderr, "数据库配置启动失败，正在恢复当前服务:", startupErr)
+						cliFprintln(os.Stderr, "数据库配置启动失败，正在恢复当前服务:", startupErr)
 						webArgs, pluginArgs = managedServiceArgs(dataDir)
 						restoredRuntime := startManagedRuntime(processContext, webArgs, pluginArgs, adminControl)
 						restoredExited, restoreErr := waitManagedRuntimeReady(restoredRuntime, processContext)
@@ -130,10 +130,10 @@ func runManagedStart(dataDir, _ string, tray bool) int {
 							if processContext.Err() != nil {
 								return 0
 							}
-							fmt.Fprintln(os.Stderr, "恢复原配置也失败:", restoreErr)
+							cliFprintln(os.Stderr, "恢复原配置也失败:", restoreErr)
 							return 1
 						}
-						fmt.Fprintln(os.Stderr, "当前数据库配置已恢复，服务继续运行。")
+						cliFprintln(os.Stderr, "当前数据库配置已恢复，服务继续运行。")
 						runtime = restoredRuntime
 						continue commandLoop
 					}
@@ -143,13 +143,13 @@ func runManagedStart(dataDir, _ string, tray bool) int {
 					default:
 					}
 					runtime = candidateRuntime
-					fmt.Fprintln(os.Stdout, "GBC Server 配置已重新加载；Web 与插件 listener 已就绪。")
+					cliFprintln(os.Stdout, "GBC Server 配置已重新加载；Web 与插件 listener 已就绪。")
 					continue commandLoop
 				}
 				runtime.cancel()
 				waitForServiceExits(runtime.results, 2)
 				if command.Action == "stop" {
-					fmt.Fprintln(os.Stdout, "GBC Server 正在停止。")
+					cliFprintln(os.Stdout, "GBC Server 正在停止。")
 					return 0
 				}
 			case result := <-runtime.results:
@@ -159,7 +159,7 @@ func runManagedStart(dataDir, _ string, tray bool) int {
 					return 0
 				}
 				if result.code == 0 {
-					fmt.Fprintf(os.Stderr, "%s 服务意外退出。\n", result.name)
+					cliFprintf(os.Stderr, "%s 服务意外退出。\n", result.name)
 					return 1
 				}
 				return result.code
@@ -171,7 +171,7 @@ func runManagedStart(dataDir, _ string, tray bool) int {
 				runtime.cancel()
 				waitForServiceExits(runtime.results, 2)
 				if err != nil {
-					fmt.Fprintln(os.Stderr, "Windows 托盘退出:", err)
+					cliFprintln(os.Stderr, "Windows 托盘退出:", err)
 					return 1
 				}
 				return 0

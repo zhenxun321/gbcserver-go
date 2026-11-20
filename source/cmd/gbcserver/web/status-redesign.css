@@ -106,6 +106,20 @@
     gap: 10px;
 }
 
+.status-page .language-toggle {
+    min-width: 40px;
+    height: 42px;
+    border-color: var(--status-line);
+    background: transparent;
+    color: var(--status-muted);
+}
+
+.status-page .language-toggle:hover {
+    border-color: var(--status-accent);
+    background: var(--status-accent-soft);
+    color: var(--status-ink);
+}
+
 .status-login {
     padding: 0 12px;
     border: 1px solid var(--status-line);

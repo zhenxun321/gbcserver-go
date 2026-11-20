@@ -70,11 +70,11 @@ func launchBackground(args []string, dataDir string, lockFile *os.File) (bool, e
 	pid := command.Process.Pid
 	_ = command.Process.Release()
 	if err := waitForControlState(dataDir, 10*time.Second); err != nil {
-		fmt.Fprintf(os.Stdout, "GBC Server 已转入后台运行，但管理通道尚未就绪：%v\n", err)
-		fmt.Fprintf(os.Stdout, "PID=%d\n日志：%s\n", pid, logPath)
+		cliFprintf(os.Stdout, "GBC Server 已转入后台运行，但管理通道尚未就绪：%v\n", err)
+		cliFprintf(os.Stdout, "PID=%d\n日志：%s\n", pid, logPath)
 		return true, nil
 	}
-	fmt.Fprintf(os.Stdout, "GBC Server 已转入后台运行。PID=%d\n日志：%s\n", pid, logPath)
+	cliFprintf(os.Stdout, "GBC Server 已转入后台运行。PID=%d\n日志：%s\n", pid, logPath)
 	return true, nil
 }
 

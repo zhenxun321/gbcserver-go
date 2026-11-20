@@ -1066,6 +1066,32 @@ html[data-theme="dark"] .login-footer {
     gap: 11px;
 }
 
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.language-toggle {
+    min-width: 42px;
+    height: 40px;
+    padding: 0 10px;
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+}
+
+.language-toggle:hover {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+}
+
 .user-avatar {
     width: 42px;
     height: 42px;

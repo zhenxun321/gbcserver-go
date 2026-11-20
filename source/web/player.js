@@ -589,7 +589,7 @@
             // 每日0点自动刷新签到状态
             function setupDailyReset() {
                 if (dailyResetTimer) clearTimeout(dailyResetTimer);
-                const offsetHours = Number(signData.timezoneOffsetHours) || 8;
+                const offsetHours = getSignTimezoneOffset();
                 const offsetMs = offsetHours * 60 * 60 * 1000;
                 const shiftedNow = new Date(Date.now() + offsetMs);
                 const nextMidnight = Date.UTC(
@@ -1337,8 +1337,13 @@
             
 
             
+            function getSignTimezoneOffset() {
+                const offsetHours = Number(signData.timezoneOffsetHours);
+                return Number.isFinite(offsetHours) ? offsetHours : 8;
+            }
+
             function getSignDateString(date = new Date()) {
-                const offsetHours = Number(signData.timezoneOffsetHours) || 8;
+                const offsetHours = getSignTimezoneOffset();
                 const shifted = new Date(date.getTime() + offsetHours * 60 * 60 * 1000);
                 return shifted.toISOString().slice(0, 10);
             }
@@ -1348,7 +1353,7 @@
             }
 
             function applySignData(data) {
-                const previousOffset = Number(signData.timezoneOffsetHours) || 8;
+                const previousOffset = getSignTimezoneOffset();
                 signData = {
                     signedDays: Object.keys(data.signHistory || {}),
                     consecutiveDays: Number(data.consecutiveDays) || 0,
@@ -1358,7 +1363,7 @@
                     today: data.today || getSignDateString(),
                     timezoneOffsetHours: Number.isFinite(Number(data.timezoneOffsetHours))
                         ? Number(data.timezoneOffsetHours)
-                        : (Number(signData.timezoneOffsetHours) || 8)
+                        : getSignTimezoneOffset()
                 };
                 userData.points = signData.points;
                 const points = document.getElementById('user-points');

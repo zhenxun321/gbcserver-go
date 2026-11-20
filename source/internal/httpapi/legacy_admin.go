@@ -46,7 +46,7 @@ func (s *Server) handleAdminLogin(writer http.ResponseWriter, request *http.Requ
 	name := paramString(params["name"])
 	password := paramString(params["passwd"])
 	totp := paramString(params["totp"])
-	if name == "" || password == "" || totp == "" {
+	if name == "" || password == "" {
 		writeJSON(writer, http.StatusBadRequest, map[string]any{"success": false, "message": "参数不完整"})
 		return
 	}
@@ -61,17 +61,13 @@ func (s *Server) handleAdminLogin(writer http.ResponseWriter, request *http.Requ
 	}
 	adminUsername, _, _ := s.configStore.Get(request.Context(), "adminUsername")
 	adminPasswordHash, _, _ := s.configStore.Get(request.Context(), "adminPasswordHash")
-	adminTOTPSecret, _, _ := s.configStore.Get(request.Context(), "adminTOTPSecret")
 	if strings.TrimSpace(adminUsername) == "" {
 		adminUsername = s.Config.AdminUsername
 	}
 	if strings.TrimSpace(adminPasswordHash) == "" {
 		adminPasswordHash = s.Config.AdminPasswordHash
 	}
-	if strings.TrimSpace(adminTOTPSecret) == "" {
-		adminTOTPSecret = s.Config.AdminTOTPSecret
-	}
-	if adminUsername == "" || adminPasswordHash == "" || adminTOTPSecret == "" {
+	if adminUsername == "" || adminPasswordHash == "" {
 		writeJSON(writer, http.StatusOK, map[string]any{"success": false, "message": "管理员配置缺失，请配置环境变量"})
 		return
 	}
@@ -88,7 +84,15 @@ func (s *Server) handleAdminLogin(writer http.ResponseWriter, request *http.Requ
 		writeJSON(writer, http.StatusOK, map[string]any{"success": false, "message": "管理员账号或密码错误"})
 		return
 	}
-	if !verifyTOTP(totp, adminTOTPSecret, time.Now()) {
+	s.adminTOTPEnrollMu.Lock()
+	adminTOTPSecret, err := s.adminTOTPSecret(request.Context())
+	if err != nil {
+		s.adminTOTPEnrollMu.Unlock()
+		writeJSON(writer, http.StatusInternalServerError, map[string]any{"success": false, "message": "读取管理员验证配置失败"})
+		return
+	}
+	if adminTOTPSecret != "" && !s.consumeTOTPCode(request.Context(), adminTOTPSecret, totp, time.Now()) {
+		s.adminTOTPEnrollMu.Unlock()
 		blocked := s.recordAdminFailure(key, time.Now())
 		time.Sleep(150 * time.Millisecond)
 		if blocked > 0 {
@@ -102,11 +106,13 @@ func (s *Server) handleAdminLogin(writer http.ResponseWriter, request *http.Requ
 	s.clearAdminFailures(key)
 	var random [32]byte
 	if _, err := rand.Read(random[:]); err != nil {
+		s.adminTOTPEnrollMu.Unlock()
 		writeJSON(writer, http.StatusOK, map[string]any{"success": false, "message": "管理员登录失败: 随机会话生成失败"})
 		return
 	}
 	sessionID := base64.RawURLEncoding.EncodeToString(random[:])
 	s.adminSessions.Put(sessionID, adminUsername, time.Now().Add(s.Config.AdminSessionTTL))
+	s.adminTOTPEnrollMu.Unlock()
 	writeJSON(writer, http.StatusOK, map[string]any{"success": true, "session": sessionID, "message": "管理员登录成功"})
 }
 
@@ -144,19 +150,26 @@ func (s *Server) clearAdminFailures(key string) {
 }
 
 func verifyTOTP(code, secret string, now time.Time) bool {
+	_, ok := matchingTOTPCounter(code, secret, now)
+	return ok
+}
+
+func matchingTOTPCounter(code, secret string, now time.Time) (uint64, bool) {
 	code = strings.TrimSpace(code)
 	if len(code) != 6 {
-		return false
+		return 0, false
 	}
-	decoded, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(strings.ToUpper(strings.ReplaceAll(secret, " ", "")))
-	if err != nil {
-		decoded, err = base32.StdEncoding.DecodeString(strings.ToUpper(strings.ReplaceAll(secret, " ", "")))
-	}
+	decoded, err := decodeTOTPSecret(secret)
 	if err != nil || len(decoded) == 0 {
-		return false
+		return 0, false
 	}
+	currentCounter := now.Unix() / 30
 	for offset := int64(-1); offset <= 1; offset++ {
-		counter := uint64(now.Unix()/30 + offset)
+		matchedCounter := currentCounter + offset
+		if matchedCounter < 0 {
+			continue
+		}
+		counter := uint64(matchedCounter)
 		var message [8]byte
 		binary.BigEndian.PutUint64(message[:], counter)
 		mac := hmac.New(sha1.New, decoded)
@@ -166,10 +179,22 @@ func verifyTOTP(code, secret string, now time.Time) bool {
 		value := (uint32(sum[index])&0x7f)<<24 | uint32(sum[index+1])<<16 | uint32(sum[index+2])<<8 | uint32(sum[index+3])
 		expected := fmt.Sprintf("%06d", value%1_000_000)
 		if subtle.ConstantTimeCompare([]byte(code), []byte(expected)) == 1 {
-			return true
+			return counter, true
 		}
 	}
-	return false
+	return 0, false
+}
+
+func decodeTOTPSecret(secret string) ([]byte, error) {
+	secret = strings.ToUpper(strings.ReplaceAll(strings.TrimSpace(secret), " ", ""))
+	decoded, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(secret)
+	if err != nil {
+		decoded, err = base32.StdEncoding.DecodeString(secret)
+	}
+	if err == nil && len(decoded) == 0 {
+		err = errors.New("empty TOTP secret")
+	}
+	return decoded, err
 }
 
 func (s *Server) handleAdminLegacyMethod(writer http.ResponseWriter, request *http.Request, method string, params map[string]any) {

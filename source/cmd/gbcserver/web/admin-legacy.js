@@ -1121,10 +1121,16 @@
     const password = document.getElementById('login-password')?.value || '';
     const totp = document.getElementById('login-totp')?.value.trim() || '';
     const button = document.getElementById('admin-login-button');
-    if (!username || !password || !totp) { showNotification('请填写管理员账户、密码和 TOTP 验证码', 'error'); return; }
+    if (!username || !password) { showNotification('请填写管理员账户和密码', 'error'); return; }
     button.disabled = true;
     showLoading(true);
     try {
+        const statusResponse = await fetch('/api/admin/status', { cache: 'no-store' });
+        const adminStatus = await statusResponse.json();
+        if (!statusResponse.ok || adminStatus.success === false) throw new Error(adminStatus.message || '无法读取管理员状态');
+        const totpInput = document.getElementById('login-totp');
+        if (totpInput) totpInput.closest('.group').hidden = !adminStatus.totpEnabled;
+        if (adminStatus.totpEnabled && !totp) throw new Error('请输入 TOTP 验证码');
         const response = await fetch('/api/adminLogin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: username, passwd: password, totp }) });
         const result = await response.json();
         if (!response.ok || !result.success || !result.session) throw new Error(result.message || '管理员登录失败');
@@ -1334,6 +1340,7 @@
 
                         // 安全：避免 innerHTML 拼接用户可控字段，防止DOM XSS
                         const nameCell = document.createElement('td');
+                        nameCell.className = 'dynamic-value';
                         nameCell.textContent = user.name;
                         row.appendChild(nameCell);
 
@@ -1676,3 +1683,13 @@
 
         
 window.addEventListener('load', () => { initPage(); document.body.classList.remove('loading'); });
+window.addEventListener('load', async () => {
+    try {
+        const response = await fetch('/api/admin/status', { cache: 'no-store' });
+        const result = await response.json();
+        const input = document.getElementById('login-totp');
+        if (input) input.closest('.group').hidden = !result.totpEnabled;
+    } catch (_) {
+        // 登录时仍会重新读取服务端状态。 / The login flow still checks the server state.
+    }
+});

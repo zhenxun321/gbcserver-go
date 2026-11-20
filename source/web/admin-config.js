@@ -42,6 +42,42 @@
     return responseJSON(response, '服务操作失败');
   }
 
+  function translate(text) {
+    return window.GBCI18N?.t(text) || text;
+  }
+
+  function setTOTPState(enabled) {
+    const state = document.querySelector('#admin-totp-state');
+    const begin = document.querySelector('#admin-totp-begin');
+    const disable = document.querySelector('#admin-totp-disable');
+    const currentField = document.querySelector('#admin-totp-current-field');
+    if (state) state.textContent = translate(enabled ? '双重验证已启用' : '双重验证未启用');
+    if (begin) begin.textContent = translate(enabled ? '更换验证器' : '启用双重验证');
+    if (disable) disable.hidden = !enabled;
+    if (currentField) currentField.hidden = !enabled;
+    document.querySelector('#admin-totp-confirm')?.replaceChildren(document.createTextNode(translate(enabled ? '验证并更换' : '验证并启用')));
+  }
+
+  function setTOTPMessage(text) {
+    const message = document.querySelector('#admin-totp-message');
+    if (message) message.textContent = text ? translate(text) : '';
+  }
+
+  async function requestAdminTOTP(action, values = {}) {
+    const response = await fetch(`/api/admin/totp/${action}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Session': currentSession() },
+      body: JSON.stringify(values)
+    });
+    return responseJSON(response, '双重验证操作失败');
+  }
+
+  async function refreshTOTPState() {
+    const result = await responseJSON(await fetch('/api/admin/status', { cache: 'no-store' }), '无法读取双重验证状态');
+    setTOTPState(Boolean(result.totpEnabled));
+    return Boolean(result.totpEnabled);
+  }
+
   function parsePort(value) {
     const port = Number.parseInt(String(value ?? '').trim(), 10);
     return Number.isInteger(port) && port > 0 && port <= 65535 ? port : '';
@@ -224,6 +260,7 @@
     const result = await requestConfig('GET');
     applyReleaseProfile(Boolean(result.githubRelease));
     fillConfig(result.config || {});
+    await refreshTOTPState();
     if (status) status.textContent = '管理员配置已从数据库读取。';
   }
 
@@ -275,6 +312,95 @@
 
   document.querySelector('#refreshButton')?.addEventListener('click', () => window.loadAdminConfig());
   document.querySelector('#logoutButton')?.addEventListener('click', () => window.logout?.());
+  document.querySelector('#admin-totp-begin')?.addEventListener('click', async event => {
+    const button = event.currentTarget;
+    const wasEnabled = await refreshTOTPState().catch(() => false);
+    const currentCode = document.querySelector('#admin-totp-current-code')?.value.trim() || '';
+    if (wasEnabled && !currentCode) {
+      setTOTPMessage('请输入当前验证器验证码');
+      return;
+    }
+    button.disabled = true;
+    setTOTPMessage('');
+    try {
+      const result = await requestAdminTOTP('begin', { currentCode });
+      const enrollment = document.querySelector('#admin-totp-enrollment');
+      const qr = document.querySelector('#admin-totp-qr');
+      const secret = document.querySelector('#admin-totp-secret');
+      if (qr) qr.src = result.qrDataURI;
+      if (secret) secret.textContent = result.secret;
+      if (enrollment) enrollment.hidden = false;
+      document.querySelector('#admin-totp-confirm-code')?.focus();
+    } catch (error) {
+      setTOTPMessage(error.message);
+    } finally {
+      button.disabled = false;
+    }
+  });
+  document.querySelector('#admin-totp-confirm')?.addEventListener('click', async event => {
+    const button = event.currentTarget;
+    const enabled = await refreshTOTPState().catch(() => false);
+    const code = document.querySelector('#admin-totp-confirm-code')?.value.trim() || '';
+    if (!/^\d{6}$/.test(code)) {
+      setTOTPMessage('请输入 6 位新验证器验证码');
+      return;
+    }
+    button.disabled = true;
+    setTOTPMessage('');
+    try {
+      await requestAdminTOTP('confirm', { code });
+      document.querySelector('#admin-totp-enrollment').hidden = true;
+      document.querySelector('#admin-totp-current-code').value = '';
+      document.querySelector('#admin-totp-confirm-code').value = '';
+      setTOTPState(true);
+      setTOTPMessage('双重验证已启用');
+      await window.loadAdminConfig?.();
+    } catch (error) {
+      setTOTPMessage(error.message);
+    } finally {
+      button.disabled = false;
+    }
+  });
+  document.querySelector('#admin-totp-cancel')?.addEventListener('click', () => {
+    document.querySelector('#admin-totp-enrollment').hidden = true;
+    document.querySelector('#admin-totp-qr').removeAttribute('src');
+    document.querySelector('#admin-totp-secret').textContent = '';
+    document.querySelector('#admin-totp-confirm-code').value = '';
+    setTOTPMessage('');
+  });
+  document.querySelector('#admin-totp-disable')?.addEventListener('click', () => {
+    document.querySelector('#admin-totp-disable-form').hidden = false;
+    document.querySelector('#admin-totp-disable-password')?.focus();
+  });
+  document.querySelector('#admin-totp-disable-cancel')?.addEventListener('click', () => {
+    document.querySelector('#admin-totp-disable-form').hidden = true;
+    document.querySelector('#admin-totp-disable-password').value = '';
+    document.querySelector('#admin-totp-disable-code').value = '';
+  });
+  document.querySelector('#admin-totp-disable-confirm')?.addEventListener('click', async event => {
+    const button = event.currentTarget;
+    const password = document.querySelector('#admin-totp-disable-password')?.value || '';
+    const code = document.querySelector('#admin-totp-disable-code')?.value.trim() || '';
+    if (!password || !/^\d{6}$/.test(code)) {
+      setTOTPMessage('请输入管理员密码和 6 位当前验证码');
+      return;
+    }
+    button.disabled = true;
+    setTOTPMessage('');
+    try {
+      await requestAdminTOTP('disable', { password, code });
+      document.querySelector('#admin-totp-disable-form').hidden = true;
+      document.querySelector('#admin-totp-disable-password').value = '';
+      document.querySelector('#admin-totp-disable-code').value = '';
+      setTOTPState(false);
+      setTOTPMessage('双重验证已关闭');
+      await window.loadAdminConfig?.();
+    } catch (error) {
+      setTOTPMessage(error.message);
+    } finally {
+      button.disabled = false;
+    }
+  });
   document.querySelector('#reloadServiceButton')?.addEventListener('click', async event => {
     const button = event.currentTarget;
     button.disabled = true;
@@ -348,8 +474,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: document.querySelector('#setup-username').value,
-          password: document.querySelector('#setup-password').value,
-          totpSecret: document.querySelector('#setup-totp').value
+          password: document.querySelector('#setup-password').value
         })
       }), '管理员初始化失败');
       document.querySelector('#admin-setup-panel').style.display = 'none';

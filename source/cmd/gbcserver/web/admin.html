@@ -6,7 +6,11 @@
     <title data-site-title="siteName">嘎嘣脆综合管理系统</title>
     <link href="/images/logo.png" rel="icon" type="image/png">
     <script src="/theme.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script defer src="/i18n-player.js"></script>
+    <script defer src="i18n-admin.js"></script>
+    <script defer src="/i18n.js"></script>
+    <link href="/vendor/fontawesome/css/fontawesome.min.css" rel="stylesheet">
+    <link href="/vendor/fontawesome/css/solid.min.css" rel="stylesheet">
     
     <link href="/system-redesign.css" rel="stylesheet">
     <link href="/interaction-effects.css" rel="stylesheet">
@@ -53,6 +57,7 @@
                 <button aria-label="切换深浅主题" class="login-theme-button" data-theme-toggle="" title="切换深浅主题" type="button">
                     <i aria-hidden="true" class="fas fa-circle-half-stroke"></i>
                 </button>
+                <button class="language-toggle" data-language-toggle type="button" aria-label="Switch language" title="Switch language">EN</button>
             </div>
             <div class="login-card">
                 <div class="login-logo">
@@ -72,7 +77,7 @@
                         <button aria-label="显示密码" class="password-toggle" onclick="togglePasswordVisibility(this)" title="显示 / 隐藏密码" type="button"><i aria-hidden="true" class="fas fa-eye"></i></button>
                         <span class="highlight"></span><span class="bar"></span><label for="login-password">密码</label>
                     </div>
-                    <div class="group admin-login-section has-icon" id="admin-login-section" style="display: block;">
+                    <div class="group admin-login-section has-icon" id="admin-login-section" style="display: none;">
                         <span aria-hidden="true" class="field-icon"><i class="fas fa-shield-halved"></i></span>
                         <input autocomplete="one-time-code" class="input" id="login-totp" inputmode="numeric" placeholder=" " title="请输入TOTP验证码" type="text"><span class="highlight"></span><span class="bar"></span><label for="login-totp">TOTP验证码</label>
                     </div>
@@ -81,7 +86,7 @@
                     
                     
                 <p id="admin-login-status" role="status" aria-live="polite"></p></div>
-            </div><section id="admin-setup-panel" class="login-card admin-setup-card" style="display: none;"><div class="login-logo"><span class="login-logo-kicker">FIRST RUN</span><h2>初始化管理员</h2><p>设置账户、密码和认证器密钥</p></div><form id="admin-setup-form" class="login-form"><div class="group"><input class="input" id="setup-username" required="" autocomplete="username" placeholder=" "><span class="highlight"></span><span class="bar"></span><label for="setup-username">管理员账户</label></div><div class="group"><input class="input" id="setup-password" type="password" minlength="8" required="" autocomplete="new-password" placeholder=" "><span class="highlight"></span><span class="bar"></span><label for="setup-password">管理员密码（至少 8 位）</label></div><div class="group"><input class="input" id="setup-totp" required="" autocomplete="off" placeholder=" "><span class="highlight"></span><span class="bar"></span><label for="setup-totp">TOTP 密钥</label></div><p class="admin-setup-help">请先在身份验证器中创建条目，再填写其密钥。</p><button class="login-button" type="submit">完成初始化</button><p id="admin-auth-status" role="status"></p></form></section>
+            </div><section id="admin-setup-panel" class="login-card admin-setup-card" style="display: none;"><div class="login-logo"><span class="login-logo-kicker">FIRST RUN</span><h2>初始化管理员</h2><p>设置管理员账户和密码</p></div><form id="admin-setup-form" class="login-form"><div class="group"><input class="input" id="setup-username" required="" autocomplete="username" placeholder=" "><span class="highlight"></span><span class="bar"></span><label for="setup-username">管理员账户</label></div><div class="group"><input class="input" id="setup-password" type="password" minlength="8" required="" autocomplete="new-password" placeholder=" "><span class="highlight"></span><span class="bar"></span><label for="setup-password">管理员密码（至少 8 位）</label></div><button class="login-button" type="submit">完成初始化</button><p id="admin-auth-status" role="status"></p></form></section>
             <p class="login-footer">© 2024-2026 <span data-site-field="siteName">嘎嘣脆综合管理系统</span></p>
         </div>
         <!-- 注册/忘记密码弹窗 -->
@@ -124,6 +129,8 @@
                 <!-- 头部区域 -->
                 <div class="header">
                     <h1 class="page-title" id="page-title">用户中心</h1>
+                    <div class="header-actions">
+                    <button class="language-toggle" data-language-toggle type="button" aria-label="Switch language" title="Switch language">EN</button>
                     <div class="user-info">
                         <div class="user-avatar">
                             <img alt="用户头像" id="user-avatar-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='40' r='20' fill='%233498db'/%3E%3Ccircle cx='50' cy='100' r='40' fill='%233498db'/%3E%3C/svg%3E">
@@ -132,6 +139,7 @@
                             <div class="user-name" id="username-display">管理员</div>
                             <div class="user-status" id="user-status">在线</div>
                         </div>
+                    </div>
                     </div>
                 </div>
                 <!-- 用户中心页面 -->
@@ -298,7 +306,7 @@
                     <!-- 兑换码生成弹窗 -->
                     <div class="modal" id="generate-coupon-modal" aria-hidden="true" onclick="if (event.target === this) closeGenerateCouponModal()">
                         <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="generate-coupon-title">
-                            <button class="close-button" type="button" aria-label="关闭" title="关闭" onclick="closeGenerateCouponModal()"><i aria-hidden="true" class="fas fa-xmark"></i></button>
+                    <button class="close-button" type="button" aria-label="关闭窗口" title="关闭窗口" onclick="closeGenerateCouponModal()"><i aria-hidden="true" class="fas fa-xmark"></i></button>
                             <div class="modal-header">
                                 <span class="modal-heading-icon" aria-hidden="true"><i class="fas fa-ticket"></i></span>
                                 <h2 id="generate-coupon-title">生成兑换码</h2>
@@ -350,7 +358,7 @@
                     <!-- 添加商品弹窗 -->
                     <div class="modal" id="item-modal" aria-hidden="true" onclick="if (event.target === this) closeItemModal()">
                         <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="item-modal-title">
-                            <button class="close-button" type="button" aria-label="关闭" title="关闭" onclick="closeItemModal()"><i aria-hidden="true" class="fas fa-xmark"></i></button>
+                    <button class="close-button" type="button" aria-label="关闭窗口" title="关闭窗口" onclick="closeItemModal()"><i aria-hidden="true" class="fas fa-xmark"></i></button>
                             <div class="modal-header">
                                 <span class="modal-heading-icon" aria-hidden="true"><i class="fas fa-box-open"></i></span>
                                 <h2 id="item-modal-title">添加商品</h2>
@@ -409,13 +417,36 @@
           <div class="admin-field"><label for="adminPath">管理员安全入口</label><input id="adminPath" data-key="adminPath" placeholder="/admin"></div>
           <div class="admin-field"><label for="adminUsername">管理员账户</label><input id="adminUsername" data-key="adminUsername" autocomplete="username"></div>
           <div class="admin-field"><label for="adminPassword">新管理员密码</label><input id="adminPassword" data-key="adminPassword" type="password" minlength="8" autocomplete="new-password" placeholder="留空表示不修改"></div>
-          <div class="admin-field"><label for="adminTOTPSecret">新 TOTP 密钥</label><input id="adminTOTPSecret" data-key="adminTOTPSecret" autocomplete="off" placeholder="留空表示不修改"></div>
+          <fieldset class="admin-field wide totp-settings">
+            <legend>双重验证</legend>
+            <p id="admin-totp-state" class="admin-muted" role="status" aria-live="polite">读取双重验证状态</p>
+            <div class="admin-actions">
+              <button id="admin-totp-begin" class="admin-button secondary" type="button">设置或更换验证器</button>
+              <button id="admin-totp-disable" class="admin-button danger" type="button" hidden>关闭双重验证</button>
+            </div>
+            <div id="admin-totp-current-field" class="admin-field" hidden><label for="admin-totp-current-code">当前验证器验证码</label><input id="admin-totp-current-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></div>
+            <div id="admin-totp-enrollment" hidden>
+              <p>使用验证器扫描二维码，或手动输入密钥。</p>
+              <img id="admin-totp-qr" alt="双重验证二维码" width="192" height="192">
+              <code id="admin-totp-secret"></code>
+              <div class="admin-field"><label for="admin-totp-confirm-code">新验证器验证码</label><input id="admin-totp-confirm-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></div>
+              <button id="admin-totp-confirm" class="admin-button primary" type="button">验证并启用</button>
+              <button id="admin-totp-cancel" class="admin-button ghost" type="button">取消</button>
+            </div>
+            <p id="admin-totp-message" class="admin-message" role="status" aria-live="polite"></p>
+          </fieldset>
+          <fieldset id="admin-totp-disable-form" class="admin-config-group wide" hidden>
+            <legend>确认关闭双重验证</legend>
+            <div class="admin-field"><label for="admin-totp-disable-password">管理员密码</label><input id="admin-totp-disable-password" type="password" autocomplete="current-password"></div>
+            <div class="admin-field"><label for="admin-totp-disable-code">当前验证码</label><input id="admin-totp-disable-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></div>
+            <div class="admin-actions"><button id="admin-totp-disable-confirm" class="admin-button danger" type="button">确认关闭</button><button id="admin-totp-disable-cancel" class="admin-button ghost" type="button">取消</button></div>
+          </fieldset>
           <div class="admin-field" data-github-hide><label for="bodyLimitBytes">请求体上限（字节）</label><input id="bodyLimitBytes" data-key="bodyLimitBytes" type="number" min="1024"></div>
           <div class="admin-field" data-github-hide><label for="serverID">插件服务 ID（白名单/兑换）</label><input id="serverID" data-key="serverID"></div>
           <div class="admin-field wide" data-github-hide><label for="webhookPath">Webhook 路径</label><input id="webhookPath" data-key="webhookPath"></div>
           <div class="admin-field" data-github-hide><label for="signTimezoneOffset">登录/签到时区偏移</label><input id="signTimezoneOffset" data-key="signTimezoneOffset" type="number" min="-12" max="14"></div>
           <div class="admin-field" data-github-hide><label for="maxOnlineTime">最长授权时长</label><input id="maxOnlineTime" data-key="maxOnlineTime" placeholder="例如 1h"></div>
-          <div class="admin-field" data-github-hide><label for="onlineMode">正版 UUID 查询</label><select id="onlineMode" data-key="onlineMode"><option value="false">关闭</option><option value="true">开启</option></select></div>
+          <div class="admin-field" data-github-hide><label for="onlineMode">正版 UUID 查询</label><select id="onlineMode" data-key="onlineMode"><option value="false">停用</option><option value="true">开启</option></select></div>
         </fieldset>
 
         <fieldset class="admin-config-group" data-github-hide>
@@ -443,7 +474,7 @@
               <div class="admin-field"><label for="mailPassword">SMTP 新密码</label><input id="mailPassword" data-key="mailPassword" type="password" autocomplete="new-password" placeholder="留空表示不修改"></div>
               <div class="admin-field"><label for="mailFromName">发件人名称</label><input id="mailFromName" data-key="mailFromName"></div>
               <div class="admin-field"><label for="mailFromAddress">发件地址</label><input id="mailFromAddress" data-key="mailFromAddress" type="email"></div>
-              <div class="admin-field"><label for="mailSecure">SMTP 安全</label><select id="mailSecure" data-key="mailSecure"><option value="true">开启</option><option value="false">关闭</option></select></div>
+              <div class="admin-field"><label for="mailSecure">SMTP 安全</label><select id="mailSecure" data-key="mailSecure"><option value="true">开启</option><option value="false">停用</option></select></div>
             </div>
           </details>
           <div class="admin-field wide status-list-field">

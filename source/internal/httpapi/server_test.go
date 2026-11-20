@@ -1,9 +1,12 @@
 package httpapi
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
+	"image/png"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -301,6 +304,7 @@ func TestLeaderboardAcceptsAdminSession(t *testing.T) {
 func TestAdminSetupAndConfigPersistWithoutExposingSecrets(t *testing.T) {
 	server, db := testServer(t)
 	setup := httptest.NewRequest(http.MethodPost, "/api/admin/setup", strings.NewReader(`{"username":"root-admin","password":"correct-horse","totpSecret":"JBSWY3DPEHPK3PXP"}`))
+	setup.RemoteAddr = "127.0.0.1:1234"
 	setup.Header.Set("Content-Type", "application/json")
 	setupResponse := httptest.NewRecorder()
 	server.ServeHTTP(setupResponse, setup)
@@ -331,6 +335,385 @@ func TestAdminSetupAndConfigPersistWithoutExposingSecrets(t *testing.T) {
 	}
 	if port != "18080" || adminPath != "/secure-admin" || username != "new-admin" || bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte("new-password")) != nil {
 		t.Fatalf("管理员配置未正确持久化: port=%q path=%q username=%q", port, adminPath, username)
+	}
+}
+
+func TestAdminSetupAllowsOptionalTOTPAndPasswordOnlyLogin(t *testing.T) {
+	server, db := testServer(t)
+	setup := httptest.NewRequest(http.MethodPost, "/api/admin/setup", strings.NewReader(`{"username":"root-admin","password":"correct-horse"}`))
+	setup.RemoteAddr = "127.0.0.1:1234"
+	setup.Header.Set("Content-Type", "application/json")
+	setupResponse := httptest.NewRecorder()
+	server.ServeHTTP(setupResponse, setup)
+	if setupResponse.Code != http.StatusOK {
+		t.Fatalf("无 TOTP 初始化失败: %d %s", setupResponse.Code, setupResponse.Body.String())
+	}
+
+	var secret string
+	if err := db.QueryRow("SELECT value FROM app_config WHERE key='adminTOTPSecret'").Scan(&secret); err == nil && secret != "" {
+		t.Fatalf("初始化时未提供的 TOTP 不应写入数据库: %q", secret)
+	}
+	login := httptest.NewRequest(http.MethodPost, "/api/adminLogin", strings.NewReader(`{"name":"root-admin","passwd":"correct-horse"}`))
+	login.Header.Set("Content-Type", "application/json")
+	loginResponse := httptest.NewRecorder()
+	server.ServeHTTP(loginResponse, login)
+	if loginResponse.Code != http.StatusOK || !strings.Contains(loginResponse.Body.String(), `"success":true`) {
+		t.Fatalf("未启用 TOTP 时密码登录失败: %d %s", loginResponse.Code, loginResponse.Body.String())
+	}
+	status := httptest.NewRecorder()
+	server.ServeHTTP(status, httptest.NewRequest(http.MethodGet, "/api/admin/status", nil))
+	if strings.Contains(status.Body.String(), `"totpEnabled":true`) {
+		t.Fatalf("状态响应错误地标记 TOTP 已启用: %s", status.Body.String())
+	}
+}
+
+func TestAdminSetupRejectsRemoteAndMalformedTOTPWithoutPartialConfiguration(t *testing.T) {
+	server, db := testServer(t)
+	remote := httptest.NewRequest(http.MethodPost, "/api/admin/setup", strings.NewReader(`{"username":"remote-admin","password":"correct-horse"}`))
+	remote.RemoteAddr = "203.0.113.10:1234"
+	remoteResponse := httptest.NewRecorder()
+	server.ServeHTTP(remoteResponse, remote)
+	if remoteResponse.Code != http.StatusForbidden {
+		t.Fatalf("远程初始化应被拒绝: %d %s", remoteResponse.Code, remoteResponse.Body.String())
+	}
+	spoofedForward := httptest.NewRequest(http.MethodPost, "/api/admin/setup", strings.NewReader(`{"username":"remote-admin","password":"correct-horse"}`))
+	spoofedForward.RemoteAddr = "127.0.0.1:1234"
+	spoofedForward.Header.Set("X-Forwarded-For", "203.0.113.10")
+	spoofedResponse := httptest.NewRecorder()
+	server.ServeHTTP(spoofedResponse, spoofedForward)
+	if spoofedResponse.Code != http.StatusForbidden {
+		t.Fatalf("非本机转发请求应被拒绝: %d %s", spoofedResponse.Code, spoofedResponse.Body.String())
+	}
+
+	invalid := httptest.NewRequest(http.MethodPost, "/api/admin/setup", strings.NewReader(`{"username":"root-admin","password":"correct-horse","totpSecret":"invalid-secret"}`))
+	invalid.RemoteAddr = "127.0.0.1:1234"
+	invalidResponse := httptest.NewRecorder()
+	server.ServeHTTP(invalidResponse, invalid)
+	if invalidResponse.Code != http.StatusBadRequest {
+		t.Fatalf("无效 TOTP 密钥应被拒绝: %d %s", invalidResponse.Code, invalidResponse.Body.String())
+	}
+	if server.adminConfigured() {
+		t.Fatal("拒绝无效 TOTP 密钥后不应留下半初始化的管理员账户")
+	}
+	var count int
+	if err := db.QueryRow("SELECT COUNT(*) FROM app_config WHERE key IN ('adminUsername','adminPasswordHash')").Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 0 {
+		t.Fatalf("拒绝无效 TOTP 密钥后仍写入管理员配置: %d", count)
+	}
+}
+
+func TestAdminTOTPEnrollmentRebindDisableAndSecretPrivacy(t *testing.T) {
+	server, db := testServer(t)
+	setup := httptest.NewRequest(http.MethodPost, "/api/admin/setup", strings.NewReader(`{"username":"root-admin","password":"correct-horse"}`))
+	setup.RemoteAddr = "127.0.0.1:1234"
+	setup.Header.Set("Content-Type", "application/json")
+	setupResponse := httptest.NewRecorder()
+	server.ServeHTTP(setupResponse, setup)
+	if setupResponse.Code != http.StatusOK {
+		t.Fatalf("管理员初始化失败: %d %s", setupResponse.Code, setupResponse.Body.String())
+	}
+	server.adminSessions.Put("admin-session", "root-admin", time.Now().Add(time.Hour))
+
+	begin := func(currentCode string) map[string]any {
+		t.Helper()
+		body, _ := json.Marshal(map[string]string{"currentCode": currentCode})
+		request := httptest.NewRequest(http.MethodPost, "/api/admin/totp/begin", strings.NewReader(string(body)))
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("X-Admin-Session", "admin-session")
+		response := httptest.NewRecorder()
+		server.ServeHTTP(response, request)
+		if response.Code != http.StatusOK {
+			t.Fatalf("开始绑定 TOTP 失败: %d %s", response.Code, response.Body.String())
+		}
+		if response.Header().Get("Cache-Control") != "no-store" {
+			t.Fatalf("含 TOTP secret 的响应必须禁止缓存: %v", response.Header())
+		}
+		var result map[string]any
+		if err := json.Unmarshal(response.Body.Bytes(), &result); err != nil {
+			t.Fatal(err)
+		}
+		secret := result["secret"].(string)
+		if !strings.HasPrefix(result["otpauthURI"].(string), "otpauth://totp/") || !strings.Contains(result["otpauthURI"].(string), url.QueryEscape(secret)) {
+			t.Fatalf("绑定响应缺少本地 otpauth URI 或密钥: %#v", result)
+		}
+		qrDataURI := result["qrDataURI"].(string)
+		const qrPrefix = "data:image/png;base64,"
+		if !strings.HasPrefix(qrDataURI, qrPrefix) {
+			t.Fatalf("绑定响应缺少内嵌 PNG 二维码: %#v", result)
+		}
+		qrBytes, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(qrDataURI, qrPrefix))
+		if err != nil {
+			t.Fatalf("二维码 data URI 的 base64 无效: %v", err)
+		}
+		if _, err := png.Decode(bytes.NewReader(qrBytes)); err != nil {
+			t.Fatalf("二维码不是有效 PNG 图片: %v", err)
+		}
+		return result
+	}
+	codeFor := func(secret string) string {
+		t.Helper()
+		decoded, err := decodeTOTPSecret(secret)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return calculateTOTP(decoded, totpCounter(time.Now()))
+	}
+	codeForCounter := func(secret string, counter int64) string {
+		t.Helper()
+		decoded, err := decodeTOTPSecret(secret)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return calculateTOTP(decoded, uint64(counter))
+	}
+	confirm := func(code string, expectedStatus int, currentCodes ...string) string {
+		t.Helper()
+		input := map[string]string{"code": code}
+		if len(currentCodes) > 0 {
+			input["currentCode"] = currentCodes[0]
+		}
+		body, _ := json.Marshal(input)
+		request := httptest.NewRequest(http.MethodPost, "/api/admin/totp/confirm", strings.NewReader(string(body)))
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("X-Admin-Session", "admin-session")
+		response := httptest.NewRecorder()
+		server.ServeHTTP(response, request)
+		if response.Code != expectedStatus {
+			t.Fatalf("确认绑定得到 %d，期望 %d: %s", response.Code, expectedStatus, response.Body.String())
+		}
+		if expectedStatus != http.StatusOK {
+			return ""
+		}
+		return response.Body.String()
+	}
+
+	first := begin("")
+	firstSecret := first["secret"].(string)
+	server.adminSessions.Put("other-admin-session", "root-admin", time.Now().Add(time.Hour))
+	otherSession := httptest.NewRequest(http.MethodPost, "/api/admin/totp/confirm", strings.NewReader(`{"code":"000000"}`))
+	otherSession.Header.Set("Content-Type", "application/json")
+	otherSession.Header.Set("X-Admin-Session", "other-admin-session")
+	otherSessionResponse := httptest.NewRecorder()
+	server.ServeHTTP(otherSessionResponse, otherSession)
+	if otherSessionResponse.Code != http.StatusConflict {
+		t.Fatalf("pending secret 不应跨管理员 session 使用: %d %s", otherSessionResponse.Code, otherSessionResponse.Body.String())
+	}
+	var persisted string
+	if err := db.QueryRow("SELECT value FROM app_config WHERE key='adminTOTPSecret'").Scan(&persisted); err == nil && persisted != "" {
+		t.Fatalf("尚未确认的新密钥已持久化: %q", persisted)
+	}
+	if strings.Contains(first["otpauthURI"].(string), "https://") {
+		t.Fatalf("otpauth URI 不应依赖第三方服务: %s", first["otpauthURI"])
+	}
+	confirm("000000", http.StatusUnauthorized)
+	if err := db.QueryRow("SELECT value FROM app_config WHERE key='adminTOTPSecret'").Scan(&persisted); err == nil && persisted != "" {
+		t.Fatalf("验证码错误后 TOTP 被持久化: %q", persisted)
+	}
+	confirm(codeForCounter(firstSecret, time.Now().Unix()/30-1), http.StatusOK)
+	if err := db.QueryRow("SELECT value FROM app_config WHERE key='adminTOTPSecret'").Scan(&persisted); err != nil || persisted != firstSecret {
+		t.Fatalf("确认后新密钥未正确保存: got=%q err=%v", persisted, err)
+	}
+
+	login := func(secret, code string) bool {
+		t.Helper()
+		body, _ := json.Marshal(map[string]string{"name": "root-admin", "passwd": "correct-horse", "totp": code})
+		request := httptest.NewRequest(http.MethodPost, "/api/adminLogin", strings.NewReader(string(body)))
+		request.Header.Set("Content-Type", "application/json")
+		response := httptest.NewRecorder()
+		server.ServeHTTP(response, request)
+		return response.Code == http.StatusOK && strings.Contains(response.Body.String(), `"success":true`)
+	}
+	if login(firstSecret, "") || login(firstSecret, "000000") {
+		t.Fatal("启用 TOTP 后缺少或错误的验证码不应登录成功")
+	}
+	currentCounter := time.Now().Unix() / 30
+	oldCode := codeForCounter(firstSecret, currentCounter)
+	if !login(firstSecret, oldCode) {
+		t.Fatal("启用 TOTP 后有效验证码登录失败")
+	}
+	if login(firstSecret, oldCode) {
+		t.Fatal("已用于登录的 TOTP 验证码不应再次签发会话")
+	}
+
+	currentCodeForBegin := codeForCounter(firstSecret, currentCounter+1)
+	second := begin(currentCodeForBegin)
+	secondSecret := second["secret"].(string)
+	if secondSecret == firstSecret {
+		t.Fatal("重新绑定应生成新密钥")
+	}
+	confirm("000000", http.StatusUnauthorized)
+	confirm(codeFor(secondSecret), http.StatusOK)
+	if login(firstSecret, codeFor(firstSecret)) {
+		t.Fatal("换绑后旧 TOTP 密钥仍可登录")
+	}
+	if !login(secondSecret, codeForCounter(secondSecret, currentCounter+1)) {
+		t.Fatal("换绑后新 TOTP 密钥不能登录")
+	}
+	server.adminSessions.Put("other-admin-session", "root-admin", time.Now().Add(time.Hour))
+	secretUpdate := httptest.NewRequest(http.MethodPut, "/api/admin/config", strings.NewReader(`{"adminTOTPSecret":""}`))
+	secretUpdate.Header.Set("Content-Type", "application/json")
+	secretUpdate.Header.Set("X-Admin-Session", "admin-session")
+	secretUpdateResponse := httptest.NewRecorder()
+	server.ServeHTTP(secretUpdateResponse, secretUpdate)
+	if secretUpdateResponse.Code != http.StatusBadRequest {
+		t.Fatalf("普通配置接口不应接受 TOTP 密钥修改: %d %s", secretUpdateResponse.Code, secretUpdateResponse.Body.String())
+	}
+	configRequest := httptest.NewRequest(http.MethodGet, "/api/admin/config", nil)
+	configRequest.Header.Set("X-Admin-Session", "admin-session")
+	configResponse := httptest.NewRecorder()
+	server.ServeHTTP(configResponse, configRequest)
+	if strings.Contains(configResponse.Body.String(), firstSecret) || strings.Contains(configResponse.Body.String(), secondSecret) || strings.Contains(configResponse.Body.String(), "adminTOTPSecret") || !strings.Contains(configResponse.Body.String(), `"adminTOTPConfigured":true`) {
+		t.Fatalf("启用状态下配置响应未正确隐藏 TOTP 密钥: %s", configResponse.Body.String())
+	}
+
+	disable := func(password, code string, expectedStatus int) string {
+		t.Helper()
+		body, _ := json.Marshal(map[string]string{"password": password, "code": code})
+		request := httptest.NewRequest(http.MethodPost, "/api/admin/totp/disable", strings.NewReader(string(body)))
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("X-Admin-Session", "admin-session")
+		response := httptest.NewRecorder()
+		server.ServeHTTP(response, request)
+		if response.Code != expectedStatus {
+			t.Fatalf("关闭 TOTP 得到 %d，期望 %d: %s", response.Code, expectedStatus, response.Body.String())
+		}
+		return response.Body.String()
+	}
+	disable("incorrect-password", codeFor(secondSecret), http.StatusUnauthorized)
+	disable("correct-horse", "000000", http.StatusUnauthorized)
+	if body := disable("correct-horse", codeForCounter(secondSecret, currentCounter-1), http.StatusOK); strings.Contains(body, secondSecret) {
+		t.Fatalf("关闭 TOTP 响应泄露密钥: %s", body)
+	}
+	if err := db.QueryRow("SELECT value FROM app_config WHERE key='adminTOTPSecret'").Scan(&persisted); err != nil || persisted != "" {
+		t.Fatalf("关闭后密钥未清除: got=%q err=%v", persisted, err)
+	}
+	if _, ok := server.adminSessions.Get("other-admin-session"); ok {
+		t.Fatal("关闭双重验证后其他管理员 session 应失效")
+	}
+	if !login("", "") {
+		t.Fatal("关闭 TOTP 后密码登录失败")
+	}
+
+	server.adminSessions.Put("admin-session", "root-admin", time.Now().Add(time.Hour))
+	request := httptest.NewRequest(http.MethodGet, "/api/admin/config", nil)
+	request.Header.Set("X-Admin-Session", "admin-session")
+	response := httptest.NewRecorder()
+	server.ServeHTTP(response, request)
+	if strings.Contains(response.Body.String(), firstSecret) || strings.Contains(response.Body.String(), secondSecret) || strings.Contains(response.Body.String(), "adminTOTPSecret") {
+		t.Fatalf("管理员配置响应泄露 TOTP 密钥: %s", response.Body.String())
+	}
+	if !strings.Contains(response.Body.String(), `"adminTOTPConfigured":false`) {
+		t.Fatalf("管理员配置未返回 TOTP 状态: %s", response.Body.String())
+	}
+}
+
+func TestAdminTOTPConfirmRejectsStaleEnrollmentFromAnotherSession(t *testing.T) {
+	server, db := testServer(t)
+	setup := httptest.NewRequest(http.MethodPost, "/api/admin/setup", strings.NewReader(`{"username":"root-admin","password":"correct-horse"}`))
+	setup.RemoteAddr = "127.0.0.1:1234"
+	setup.Header.Set("Content-Type", "application/json")
+	setupResponse := httptest.NewRecorder()
+	server.ServeHTTP(setupResponse, setup)
+	if setupResponse.Code != http.StatusOK {
+		t.Fatalf("管理员初始化失败: %d %s", setupResponse.Code, setupResponse.Body.String())
+	}
+	server.adminSessions.Put("admin-session-a", "root-admin", time.Now().Add(time.Hour))
+	server.adminSessions.Put("admin-session-b", "root-admin", time.Now().Add(time.Hour))
+
+	begin := func(sessionID string) string {
+		t.Helper()
+		request := httptest.NewRequest(http.MethodPost, "/api/admin/totp/begin", strings.NewReader(`{}`))
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("X-Admin-Session", sessionID)
+		response := httptest.NewRecorder()
+		server.ServeHTTP(response, request)
+		if response.Code != http.StatusOK {
+			t.Fatalf("开始绑定 TOTP 失败: %d %s", response.Code, response.Body.String())
+		}
+		var result struct {
+			Secret string `json:"secret"`
+		}
+		if err := json.Unmarshal(response.Body.Bytes(), &result); err != nil {
+			t.Fatal(err)
+		}
+		return result.Secret
+	}
+	confirm := func(sessionID, secret string) *httptest.ResponseRecorder {
+		t.Helper()
+		decoded, err := decodeTOTPSecret(secret)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, _ := json.Marshal(map[string]string{"code": calculateTOTP(decoded, totpCounter(time.Now()))})
+		request := httptest.NewRequest(http.MethodPost, "/api/admin/totp/confirm", bytes.NewReader(body))
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("X-Admin-Session", sessionID)
+		response := httptest.NewRecorder()
+		server.ServeHTTP(response, request)
+		return response
+	}
+
+	secretA := begin("admin-session-a")
+	secretB := begin("admin-session-b")
+	if response := confirm("admin-session-a", secretA); response.Code != http.StatusOK {
+		t.Fatalf("首次启用 TOTP 失败: %d %s", response.Code, response.Body.String())
+	}
+	if response := confirm("admin-session-b", secretB); response.Code != http.StatusUnauthorized {
+		t.Fatalf("启用双重验证后旧管理员 session 应失效: %d %s", response.Code, response.Body.String())
+	}
+	if _, exists := server.adminTOTPEnrollments["admin-session-b"]; exists {
+		t.Fatal("启用双重验证后其他 session 的 pending secret 应清除")
+	}
+	var persisted string
+	if err := db.QueryRow("SELECT value FROM app_config WHERE key='adminTOTPSecret'").Scan(&persisted); err != nil || persisted != secretA {
+		t.Fatalf("旧 pending 覆盖了已启用的 TOTP: got=%q err=%v", persisted, err)
+	}
+}
+
+func TestAdminTOTPEnrollmentRequiresSessionAndExpires(t *testing.T) {
+	server, _ := testServer(t)
+	server.adminTOTPEnrollments["expired-session"] = adminTOTPEnrollment{Secret: "JBSWY3DPEHPK3PXP", ExpiresAt: time.Now().Add(-time.Second)}
+	request := httptest.NewRequest(http.MethodPost, "/api/admin/totp/begin", strings.NewReader(`{}`))
+	request.Header.Set("Content-Type", "application/json")
+	unauthorized := httptest.NewRecorder()
+	server.ServeHTTP(unauthorized, request)
+	if unauthorized.Code != http.StatusUnauthorized {
+		t.Fatalf("未登录开始绑定应拒绝: %d %s", unauthorized.Code, unauthorized.Body.String())
+	}
+
+	server.adminSessions.Put("expired-session", "admin", time.Now().Add(time.Hour))
+	confirm := httptest.NewRequest(http.MethodPost, "/api/admin/totp/confirm", strings.NewReader(`{"code":"000000"}`))
+	confirm.Header.Set("Content-Type", "application/json")
+	confirm.Header.Set("X-Admin-Session", "expired-session")
+	expired := httptest.NewRecorder()
+	server.ServeHTTP(expired, confirm)
+	if expired.Code != http.StatusConflict {
+		t.Fatalf("过期绑定应拒绝: %d %s", expired.Code, expired.Body.String())
+	}
+}
+
+func TestAdminTOTPRebindRequiresCurrentCode(t *testing.T) {
+	server, db := testServer(t)
+	server.adminSessions.Put("admin-session", "admin", time.Now().Add(time.Hour))
+	oldSecret := "JBSWY3DPEHPK3PXP"
+	if err := (store.ConfigStore{DB: db}).Set(context.Background(), "adminTOTPSecret", oldSecret); err != nil {
+		t.Fatal(err)
+	}
+
+	request := httptest.NewRequest(http.MethodPost, "/api/admin/totp/begin", strings.NewReader(`{"currentCode":"000000"}`))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Admin-Session", "admin-session")
+	response := httptest.NewRecorder()
+	server.ServeHTTP(response, request)
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("换绑未校验旧 TOTP: %d %s", response.Code, response.Body.String())
+	}
+
+	var persisted string
+	if err := db.QueryRow("SELECT value FROM app_config WHERE key='adminTOTPSecret'").Scan(&persisted); err != nil || persisted != oldSecret {
+		t.Fatalf("错误的当前验证码影响了现有 TOTP: secret=%q err=%v", persisted, err)
 	}
 }
 
@@ -422,6 +805,7 @@ func TestAdminPageIsOnlyAvailableAtConfiguredEntry(t *testing.T) {
 		"admin-config.js": &fstest.MapFile{Data: []byte("admin config script")},
 		"player.js":       &fstest.MapFile{Data: []byte("player script")},
 		"admin-legacy.js": &fstest.MapFile{Data: []byte("admin script")},
+		"i18n-admin.js":   &fstest.MapFile{Data: []byte("admin translations")},
 	}})
 	if err != nil {
 		t.Fatal(err)
@@ -438,12 +822,14 @@ func TestAdminPageIsOnlyAvailableAtConfiguredEntry(t *testing.T) {
 		{path: "/admin.css", wantStatus: http.StatusNotFound},
 		{path: "/admin-config.js", wantStatus: http.StatusNotFound},
 		{path: "/admin-legacy.js", wantStatus: http.StatusNotFound},
+		{path: "/i18n-admin.js", wantStatus: http.StatusNotFound},
 		{path: "/admin/", wantStatus: http.StatusNotFound},
 		{path: "/private/console", wantStatus: http.StatusPermanentRedirect, wantLocation: "/private/console/"},
 		{path: "/private/console/", wantStatus: http.StatusOK, wantBody: "admin page"},
 		{path: "/private/console/admin.css", wantStatus: http.StatusOK, wantBody: "admin style"},
 		{path: "/private/console/admin-config.js", wantStatus: http.StatusOK, wantBody: "admin config script"},
 		{path: "/private/console/admin-legacy.js", wantStatus: http.StatusOK, wantBody: "admin script"},
+		{path: "/private/console/i18n-admin.js", wantStatus: http.StatusOK, wantBody: "admin translations"},
 	} {
 		response := httptest.NewRecorder()
 		server.ServeHTTP(response, httptest.NewRequest(http.MethodGet, test.path, nil))

@@ -1,5 +1,5 @@
 param(
-    [string]$OutputDirectory = "目标文件",
+    [string]$OutputDirectory = "目标文件/v1.0.1-build",
     [string]$SigningCertificateThumbprint = '',
     [switch]$RequireWindowsSignature
 )
@@ -40,7 +40,7 @@ Get-ChildItem -LiteralPath $embeddedWeb -Force | Remove-Item -Recurse -Force
 $embeddedRootFiles = @(
     'admin.html', 'login.html', 'ping.html', 'admin.css', 'admin-config.js', 'admin-legacy.js',
     'admin-tokens.js', 'player.js', 'status-page.js', 'theme.js', 'site-config.js',
-    'interaction-effects.js', 'minecraft-items.json', 'system-redesign.css',
+    'interaction-effects.js', 'i18n.js', 'i18n-player.js', 'i18n-admin.js', 'minecraft-items.json', 'system-redesign.css',
     'interaction-effects.css', 'theme.css', 'visual-polish.css', 'status-redesign.css'
 )
 foreach ($fileName in $embeddedRootFiles) {
@@ -49,6 +49,17 @@ foreach ($fileName in $embeddedRootFiles) {
         throw "GitHub 网页资源不存在：$sourcePath"
     }
     Copy-Item -LiteralPath $sourcePath -Destination (Join-Path $embeddedWeb $fileName) -Force
+}
+$embeddedFontAwesome = Join-Path $embeddedWeb 'vendor\fontawesome'
+New-Item -ItemType Directory -Path (Join-Path $embeddedFontAwesome 'css'), (Join-Path $embeddedFontAwesome 'webfonts') -Force | Out-Null
+foreach ($relativePath in @('css/fontawesome.min.css', 'css/solid.min.css', 'webfonts/fa-solid-900.woff2', 'webfonts/fa-solid-900.ttf', 'LICENSE.txt')) {
+    $sourcePath = Join-Path $canonicalWeb "vendor/fontawesome/$relativePath"
+    if (-not (Test-Path -LiteralPath $sourcePath -PathType Leaf)) {
+        throw "Font Awesome 本地资源不存在：$sourcePath"
+    }
+    $destinationPath = Join-Path $embeddedFontAwesome $relativePath
+    New-Item -ItemType Directory -Path (Split-Path -Parent $destinationPath) -Force | Out-Null
+    Copy-Item -LiteralPath $sourcePath -Destination $destinationPath -Force
 }
 $embeddedImages = @('logo.png', 'default_item.png')
 $embeddedImageDirectory = Join-Path $embeddedWeb 'images'

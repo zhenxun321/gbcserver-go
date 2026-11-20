@@ -21,6 +21,8 @@ JSON API 返回 UTF-8 JSON。网页用户 session 通过 `POST /api/webLogin` �
 
 以下 `{base}` 指 Web/API 地址。
 
+English: `{base}` refers to the Web/API base address.
+
 | 方法与路径 | 认证 | 说明 |
 | --- | --- | --- |
 | `GET /healthz` | 无 | SQLite 可用时返回 `200 {"status":"ok"}`；数据库不可用时返回 `503`。 |
@@ -32,7 +34,10 @@ JSON API 返回 UTF-8 JSON。网页用户 session 通过 `POST /api/webLogin` �
 | `GET /api/leaderboard` | Web 或管理员 session | 查询积分/在线榜单。Session 可放 `X-Web-Session`、`X-Admin-Session` 或 query `session`。 |
 | `POST /api/adminLogin` | 无 | 管理员登录，输入字段见下方示例。 |
 | `GET /api/admin/status` | 无 | 查询是否已完成管理员初始化；不会返回自定义管理员安全入口。 |
-| `POST /api/admin/setup` | 未初始化时 | 首次设置管理员账户、密码和 TOTP；密码服务端生成 bcrypt 哈希后写入数据库。 |
+| `POST /api/admin/setup` | 未初始化且请求来自本机 | 仅接受 loopback TCP 连接；首次设置管理员账户和密码，`totpSecret` 可选。远程管理员请使用 SSH 端口转发。密码服务端生成 bcrypt 哈希后写入数据库。 |
+| `POST /api/admin/totp/begin` | 管理员 session | 本地生成待绑定 TOTP 密钥和二维码；换绑已有密钥时需要当前验证码。 |
+| `POST /api/admin/totp/confirm` | 管理员 session | 使用新验证码确认启用或换绑；换绑时当前验证码已在 begin 阶段验证。 |
+| `POST /api/admin/totp/disable` | 管理员 session | 使用管理员密码和当前验证码关闭双重验证。 |
 | `GET /api/admin/config` | 管理员 session | 读取数据库中的可编辑运行配置；密码哈希、TOTP secret 和 SMTP 密码只返回是否已配置。 |
 | `PUT /api/admin/config` | 管理员 session | 写入可编辑运行配置；`adminPassword` 会立即转换为 bcrypt 哈希，不能直接写哈希。修改端口、入口或 listener 后从网页或命令行重新加载服务。 |
 | `GET /api/admin/plugin-tokens` | 管理员 session | 列出插件令牌元数据和当前服务 ID；不返回 secret 或摘要。 |
@@ -45,6 +50,8 @@ JSON API 返回 UTF-8 JSON。网页用户 session 通过 `POST /api/webLogin` �
 | `GET /ports` | 无 | 返回端口映射对象。 |
 | `GET <webhookPath>/health` | 无 | 端口更新 webhook 健康探测。`webhookPath` 默认 `/webhook/update-port`。 |
 | `POST <webhookPath>` | 无 | 更新已有服务名对应的 host/port；body 或 query 提供 `name`、`host`、`port`。name 与 host 必须和服务配置匹配。建议在反向代理/防火墙限制来源。 |
+
+English: The administrator setup endpoint accepts requests only over loopback TCP and supports an optional `totpSecret`. Use SSH port forwarding for remote setup. The TOTP begin and confirm endpoints generate and verify QR-based enrollment locally; changing an existing secret requires the current code at the begin step. Each TOTP time step can be used once. Disabling TOTP requires the administrator password and current code. Administrator login accepts `totp` only when two-factor authentication is enabled.
 
 玩家登录示例：
 
@@ -61,7 +68,7 @@ curl -sS 'https://gbc.example.com/api/userInfo' \
   -H 'X-Web-Session: <web-session>'
 ```
 
-管理员登录使用数据库中的管理员账户、bcrypt 密码哈希和 TOTP secret；请求字段为 `name`、`passwd`、`totp`：
+管理员登录使用数据库中的管理员账户和 bcrypt 密码哈希；如果已启用双重验证，还需提供 TOTP 验证码。请求字段为 `name`、`passwd`、`totp`：
 
 ```json
 {"name":"admin","passwd":"管理员密码","totp":"当前六位验证码"}

@@ -53,9 +53,9 @@ func serveWebListenersWithReady(ctx context.Context, handler http.Handler, httpA
 		listeners = append(listeners, tlsListener)
 	}
 
-	fmt.Fprintln(os.Stdout, "Web 服务已启动：HTTP://"+httpListener.Addr().String())
+	cliFprintln(os.Stdout, "Web 服务已启动：HTTP://"+httpListener.Addr().String())
 	if certificate != nil {
-		fmt.Fprintln(os.Stdout, "Web 服务已启动：HTTPS://"+listeners[1].Addr().String())
+		cliFprintln(os.Stdout, "Web 服务已启动：HTTPS://"+listeners[1].Addr().String())
 	}
 	results := make(chan error, len(servers))
 	for index := range servers {

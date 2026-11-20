@@ -94,6 +94,6 @@ func initializeDatabaseIfMissing(path string) error {
 	if err != nil {
 		return fmt.Errorf("初始化新 SQLite 失败: %w", err)
 	}
-	fmt.Fprintf(os.Stdout, "已初始化数据库：%s\n", path)
+	cliFprintf(os.Stdout, "已初始化数据库：%s\n", path)
 	return nil
 }

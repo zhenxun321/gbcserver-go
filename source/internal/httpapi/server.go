@@ -102,8 +102,11 @@ type Server struct {
 	sessions             *sessionStore
 	adminSessions        *sessionStore
 	plugins              *plugin.SQLiteService
+	adminSetupMu         sync.Mutex
 	failureMu            sync.Mutex
 	adminFailures        map[string]adminFailure
+	adminTOTPEnrollMu    sync.Mutex
+	adminTOTPEnrollments map[string]adminTOTPEnrollment
 	configStore          store.ConfigStore
 	verificationMu       sync.Mutex
 	verifications        map[string]verificationRecord
@@ -214,7 +217,7 @@ func New(db *sql.DB, staticDir, avatarDir string, config Config) (*Server, error
 	}
 	plugins := plugin.NewSQLiteService(db)
 	plugins.LoginTimezoneOffsetHours = config.SignTimezoneOffset
-	server := &Server{DB: db, Config: config, staticDir: staticDir, avatarDir: avatarDir, staticFS: config.StaticFS, mux: http.NewServeMux(), sessions: newSessionStore(), adminSessions: newSessionStore(), plugins: plugins, adminFailures: make(map[string]adminFailure), verifications: make(map[string]verificationRecord), statusCache: make(map[string]statusCacheEntry), configStore: store.ConfigStore{DB: db}}
+	server := &Server{DB: db, Config: config, staticDir: staticDir, avatarDir: avatarDir, staticFS: config.StaticFS, mux: http.NewServeMux(), sessions: newSessionStore(), adminSessions: newSessionStore(), plugins: plugins, adminFailures: make(map[string]adminFailure), adminTOTPEnrollments: make(map[string]adminTOTPEnrollment), verifications: make(map[string]verificationRecord), statusCache: make(map[string]statusCacheEntry), configStore: store.ConfigStore{DB: db}}
 	if err := repairLegacyShopImages(context.Background(), db); err != nil {
 		return nil, fmt.Errorf("修复旧商品图片引用失败: %w", err)
 	}
@@ -234,6 +237,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/adminLogin", s.handleAdminLogin)
 	s.mux.HandleFunc("/api/admin/status", s.handleAdminStatus)
 	s.mux.HandleFunc("/api/admin/setup", s.handleAdminSetup)
+	s.mux.HandleFunc("/api/admin/totp/begin", s.handleAdminTOTPBegin)
+	s.mux.HandleFunc("/api/admin/totp/confirm", s.handleAdminTOTPConfirm)
+	s.mux.HandleFunc("/api/admin/totp/disable", s.handleAdminTOTPDisable)
 	s.mux.HandleFunc("/api/admin/config", s.handleAdminConfig)
 	s.mux.HandleFunc("/api/admin/plugin-tokens", s.handleAdminPluginTokens)
 	s.mux.HandleFunc("/api/admin/plugin-tokens/", s.handleAdminPluginToken)
@@ -310,7 +316,7 @@ func (s *Server) routes() {
 
 func isProtectedAdminAsset(requestPath string) bool {
 	switch strings.ToLower(path.Clean(requestPath)) {
-	case "/admin.html", "/admin.css", "/admin-config.js", "/admin-legacy.js", "/admin-tokens.js":
+	case "/admin.html", "/admin.css", "/admin-config.js", "/admin-legacy.js", "/admin-tokens.js", "/i18n-admin.js":
 		return true
 	default:
 		return false

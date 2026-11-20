@@ -48,6 +48,16 @@ func (s *sessionStore) Delete(id string) {
 	delete(s.sessions, id)
 }
 
+func (s *sessionStore) DeleteExcept(id string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for sessionID := range s.sessions {
+		if sessionID != id {
+			delete(s.sessions, sessionID)
+		}
+	}
+}
+
 func (s *sessionStore) DeleteUser(username string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

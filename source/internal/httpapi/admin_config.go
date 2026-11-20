@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"path"
@@ -19,7 +20,7 @@ import (
 
 // 管理员页面可以修改的配置键。密码哈希、控制通道和数据库连接信息永不开放给页面。
 var adminEditableConfigKeys = map[string]struct{}{
-	"httpPort": {}, "httpsPort": {}, "adminPath": {}, "adminUsername": {}, "adminTOTPSecret": {},
+	"httpPort": {}, "httpsPort": {}, "adminPath": {}, "adminUsername": {},
 	"siteName": {}, "loginPageTitle": {}, "statusPageTitle": {}, "statusPageFooter": {},
 	"whitelistListen": {}, "couponListen": {}, "staticDir": {}, "avatarDir": {}, "tlsKeyFile": {}, "tlsCertFile": {},
 	"bodyLimitBytes": {}, "serverID": {}, "webhookPath": {}, "signTimezoneOffset": {}, "maxOnlineTime": {}, "onlineMode": {},
@@ -70,11 +71,24 @@ func requiresRuntimeReload(updates map[string]string) bool {
 func (s *Server) adminConfigured() bool {
 	username, _, _ := s.configStore.Get(context.Background(), "adminUsername")
 	hash, _, _ := s.configStore.Get(context.Background(), "adminPasswordHash")
-	totp, _, _ := s.configStore.Get(context.Background(), "adminTOTPSecret")
-	if strings.TrimSpace(username) != "" && strings.TrimSpace(hash) != "" && strings.TrimSpace(totp) != "" {
-		return true
+	if strings.TrimSpace(username) == "" {
+		username = s.Config.AdminUsername
 	}
-	return strings.TrimSpace(s.Config.AdminUsername) != "" && strings.TrimSpace(s.Config.AdminPasswordHash) != "" && strings.TrimSpace(s.Config.AdminTOTPSecret) != ""
+	if strings.TrimSpace(hash) == "" {
+		hash = s.Config.AdminPasswordHash
+	}
+	return strings.TrimSpace(username) != "" && strings.TrimSpace(hash) != ""
+}
+
+func (s *Server) adminTOTPSecret(ctx context.Context) (string, error) {
+	secret, exists, err := s.configStore.Get(ctx, "adminTOTPSecret")
+	if err != nil {
+		return "", err
+	}
+	if exists {
+		return strings.TrimSpace(secret), nil
+	}
+	return strings.TrimSpace(s.Config.AdminTOTPSecret), nil
 }
 
 func (s *Server) configuredAdminPath(ctx context.Context) string {
@@ -95,7 +109,12 @@ func (s *Server) handleAdminStatus(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"success": true, "initialized": s.adminConfigured()})
+	totpSecret, err := s.adminTOTPSecret(r.Context())
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]any{"success": false, "message": "读取管理员状态失败"})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"success": true, "initialized": s.adminConfigured(), "totpEnabled": strings.TrimSpace(totpSecret) != ""})
 }
 
 func (s *Server) handleAdminSetup(w http.ResponseWriter, r *http.Request) {
@@ -104,8 +123,14 @@ func (s *Server) handleAdminSetup(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	s.adminSetupMu.Lock()
+	defer s.adminSetupMu.Unlock()
 	if s.adminConfigured() {
 		writeJSON(w, http.StatusConflict, map[string]any{"success": false, "message": "管理员已初始化"})
+		return
+	}
+	if !isLocalAdminSetupRequest(r) {
+		writeJSON(w, http.StatusForbidden, map[string]any{"success": false, "message": "首次管理员初始化仅允许本机访问，请使用本机浏览器或 SSH 端口转发"})
 		return
 	}
 	var input struct {
@@ -119,9 +144,15 @@ func (s *Server) handleAdminSetup(w http.ResponseWriter, r *http.Request) {
 	}
 	input.Username = strings.TrimSpace(input.Username)
 	input.TOTPSecret = strings.TrimSpace(input.TOTPSecret)
-	if input.Username == "" || len([]byte(input.Password)) < 8 || len([]byte(input.Password)) > 72 || input.TOTPSecret == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]any{"success": false, "message": "账户、密码和 TOTP 均不能为空，密码必须为 8-72 字节"})
+	if input.Username == "" || len([]byte(input.Password)) < 8 || len([]byte(input.Password)) > 72 {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"success": false, "message": "账户和密码不能为空，密码必须为 8-72 字节"})
 		return
+	}
+	if input.TOTPSecret != "" {
+		if _, err := decodeTOTPSecret(input.TOTPSecret); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"success": false, "message": "TOTP 密钥格式无效"})
+			return
+		}
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -132,14 +163,43 @@ func (s *Server) handleAdminSetup(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"success": false, "message": "保存初始配置失败"})
 		return
 	}
-	for key, value := range map[string]string{"adminUsername": input.Username, "adminPasswordHash": string(hash), "adminTOTPSecret": input.TOTPSecret} {
+	initialValues := map[string]string{"adminUsername": input.Username, "adminPasswordHash": string(hash)}
+	if input.TOTPSecret != "" {
+		initialValues["adminTOTPSecret"] = strings.ToUpper(strings.ReplaceAll(input.TOTPSecret, " ", ""))
+	}
+	for key, value := range initialValues {
 		if err := s.configStore.Set(r.Context(), key, value); err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]any{"success": false, "message": "保存管理员配置失败"})
 			return
 		}
 	}
-	s.Config.AdminUsername, s.Config.AdminPasswordHash, s.Config.AdminTOTPSecret = input.Username, string(hash), input.TOTPSecret
+	s.Config.AdminUsername, s.Config.AdminPasswordHash = input.Username, string(hash)
+	if input.TOTPSecret != "" {
+		s.Config.AdminTOTPSecret = initialValues["adminTOTPSecret"]
+	}
 	writeJSON(w, http.StatusOK, map[string]any{"success": true, "message": "管理员初始化完成"})
+}
+
+func isLocalAdminSetupRequest(r *http.Request) bool {
+	remote := strings.TrimSpace(r.RemoteAddr)
+	if host, _, err := net.SplitHostPort(remote); err == nil {
+		remote = host
+	}
+	ip := net.ParseIP(strings.Trim(remote, "[]"))
+	if ip == nil || !ip.IsLoopback() {
+		return false
+	}
+	forwarded := strings.TrimSpace(r.Header.Get("X-Forwarded-For"))
+	if forwarded == "" {
+		return true
+	}
+	for _, value := range strings.Split(forwarded, ",") {
+		forwardedIP := net.ParseIP(strings.TrimSpace(value))
+		if forwardedIP == nil || !forwardedIP.IsLoopback() {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *Server) adminConfigSnapshot(ctx context.Context) (map[string]any, error) {
@@ -153,6 +213,9 @@ func (s *Server) adminConfigSnapshot(ctx context.Context) (map[string]any, error
 		var key, value string
 		if err := rows.Scan(&key, &value); err != nil {
 			return nil, err
+		}
+		if key == "adminTOTPSecret" {
+			continue
 		}
 		if _, ok := adminEditableConfigKeys[key]; ok {
 			values[key] = value
@@ -188,8 +251,11 @@ func (s *Server) adminConfigSnapshot(ctx context.Context) (map[string]any, error
 	} else {
 		result["adminPasswordConfigured"] = strings.TrimSpace(s.Config.AdminPasswordHash) != ""
 	}
-	result["adminTOTPConfigured"] = result["adminTOTPSecretConfigured"]
-	delete(result, "adminTOTPSecretConfigured")
+	totpSecret, err := s.adminTOTPSecret(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result["adminTOTPConfigured"] = strings.TrimSpace(totpSecret) != ""
 	return result, nil
 }
 
@@ -235,11 +301,6 @@ func validateAdminConfigValue(key, value string) (string, error) {
 		}
 		if utf8.RuneCountInString(trimmed) > maxRunes {
 			return "", fmt.Errorf("%s 不能超过 %d 个字符", key, maxRunes)
-		}
-		return trimmed, nil
-	case "adminTOTPSecret":
-		if trimmed == "" {
-			return "", errors.New("adminTOTPSecret 不能为空")
 		}
 		return trimmed, nil
 	case "whitelistListen", "couponListen":

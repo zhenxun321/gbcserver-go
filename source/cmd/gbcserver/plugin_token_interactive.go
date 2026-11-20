@@ -24,7 +24,7 @@ func runInteractivePluginToken(args []string) int {
 	dbPath := filepath.Join(strings.TrimSpace(*dataDir), "gbcserver.db")
 	db, err := openNormalizedDB(dbPath)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "无法打开运行数据库；请先启动一次服务完成初始化，或使用 --data-dir 指定数据目录。", err)
+		cliFprintln(os.Stderr, "无法打开运行数据库；请先启动一次服务完成初始化，或使用 --data-dir 指定数据目录。", err)
 		return 1
 	}
 	defer db.Close()
@@ -33,7 +33,7 @@ func runInteractivePluginToken(args []string) int {
 	config := store.ConfigStore{DB: db}
 	serverID := "default"
 	if value, exists, err := config.Get(ctx, "serverID"); err != nil {
-		fmt.Fprintln(os.Stderr, "读取插件服务 ID 失败:", err)
+		cliFprintln(os.Stderr, "读取插件服务 ID 失败:", err)
 		return 1
 	} else if exists && strings.TrimSpace(value) != "" {
 		serverID = strings.TrimSpace(value)
@@ -43,13 +43,13 @@ func runInteractivePluginToken(args []string) int {
 	tokens := plugin.NewTokenStore(db)
 	reader := bufio.NewReader(os.Stdin)
 
-	fmt.Println("GBC Server 插件接入")
-	fmt.Printf("运行数据目录：%s\n游戏服 ID：%s\n", *dataDir, serverID)
+	cliPrintln("GBC Server 插件接入")
+	cliPrintf("运行数据目录：%s\n游戏服 ID：%s\n", *dataDir, serverID)
 	for {
-		fmt.Println("\n1. 签发插件令牌\n2. 撤销插件令牌\n0. 退出")
+		cliPrintln("\n1. 签发插件令牌\n2. 撤销插件令牌\n0. 退出")
 		choice, err := readInteractiveLine(reader, "请选择：")
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "读取输入失败:", err)
+			cliFprintln(os.Stderr, "读取输入失败:", err)
 			return 1
 		}
 		switch choice {
@@ -57,20 +57,20 @@ func runInteractivePluginToken(args []string) int {
 			return 0
 		case "1":
 			if err := issueInteractivePluginToken(reader, ctx, tokens, serverID, whitelistListen, couponListen); err != nil {
-				fmt.Fprintln(os.Stderr, err)
+				cliFprintln(os.Stderr, err)
 			}
 		case "2":
 			if err := revokeInteractivePluginToken(reader, ctx, tokens); err != nil {
-				fmt.Fprintln(os.Stderr, err)
+				cliFprintln(os.Stderr, err)
 			}
 		default:
-			fmt.Println("请输入 1、2 或 0。")
+			cliPrintln("请输入 1、2 或 0。")
 		}
 	}
 }
 
 func issueInteractivePluginToken(reader *bufio.Reader, ctx context.Context, tokens *plugin.TokenStore, serverID, whitelistListen, couponListen string) error {
-	fmt.Println("\n1. 白名单插件\n2. 兑换插件")
+	cliPrintln("\n1. 白名单插件\n2. 兑换插件")
 	choice, err := readInteractiveLine(reader, "选择插件：")
 	if err != nil {
 		return err
@@ -130,9 +130,9 @@ func issueInteractivePluginToken(reader *bufio.Reader, ctx context.Context, toke
 	if scope == plugin.ScopeCouponRedeem {
 		key = "coupon-token"
 	}
-	fmt.Printf("\n令牌已签发（ID：%s）。明文只显示这一次，请立即保存。\n", issued.TokenID)
-	fmt.Printf("%s\n%s: %s\n", "--- 插件配置 ---", "api-url", strconv.Quote(apiURL))
-	fmt.Printf("%s: %s\n", key, strconv.Quote(issued.Secret))
+	cliPrintf("\n令牌已签发（ID：%s）。明文只显示这一次，请立即保存。\n", issued.TokenID)
+	cliPrintf("%s\n%s: %s\n", "--- 插件配置 ---", "api-url", strconv.Quote(apiURL))
+	cliPrintf("%s: %s\n", key, strconv.Quote(issued.Secret))
 	return nil
 }
 
@@ -142,7 +142,7 @@ func revokeInteractivePluginToken(reader *bufio.Reader, ctx context.Context, tok
 		return err
 	}
 	if len(items) == 0 {
-		fmt.Println("当前没有插件令牌。")
+		cliPrintln("当前没有插件令牌。")
 		return nil
 	}
 	for index, item := range items {
@@ -152,7 +152,7 @@ func revokeInteractivePluginToken(reader *bufio.Reader, ctx context.Context, tok
 		} else if item.ExpiresAt != nil && *item.ExpiresAt <= time.Now().UnixMilli() {
 			state = "已过期"
 		}
-		fmt.Printf("%d. %s  %s  %s  %s\n", index+1, item.TokenID, item.ServerID, item.Scope, state)
+		cliPrintf("%d. %s  %s  %s  %s\n", index+1, item.TokenID, item.ServerID, item.Scope, state)
 	}
 	choice, err := readInteractiveLine(reader, "输入序号撤销，回车返回：")
 	if err != nil {
@@ -176,7 +176,7 @@ func revokeInteractivePluginToken(reader *bufio.Reader, ctx context.Context, tok
 	if err := tokens.Revoke(ctx, selected.TokenID); err != nil {
 		return err
 	}
-	fmt.Println("令牌已撤销。")
+	cliPrintln("令牌已撤销。")
 	return nil
 }
 
@@ -219,7 +219,7 @@ func readInteractiveConfig(ctx context.Context, config store.ConfigStore, key, f
 }
 
 func readInteractiveLine(reader *bufio.Reader, prompt string) (string, error) {
-	fmt.Fprint(os.Stdout, prompt)
+	cliFprint(os.Stdout, prompt)
 	line, err := reader.ReadString('\n')
 	if err != nil && len(line) == 0 {
 		return "", err
