@@ -129,14 +129,16 @@ public class CouponPlugin extends JavaPlugin implements Listener {
             return true;
         }
 
-        String playerName = player.getName();
+        String currentPlayerName = player.getName();
         String couponCode = args[0];
-        String requestId = getOrCreateRequestId(playerId, couponCode);
-        if (requestId.isBlank()) {
+        PendingRequest pendingRequest = getOrCreatePendingRequest(playerId, currentPlayerName, couponCode);
+        if (pendingRequest.requestId().isBlank()) {
             pendingRequests.remove(playerId);
             player.sendMessage("Coupon request could not be saved safely. Please try again later.");
             return true;
         }
+        String playerName = pendingRequest.playerName();
+        String requestId = pendingRequest.requestId();
         String redemptionPath = pendingRequestPath(playerId, couponCode);
         player.sendMessage("Validating coupon...");
 
@@ -156,8 +158,10 @@ public class CouponPlugin extends JavaPlugin implements Listener {
                         if (player.isOnline()) {
                             deliverPendingForPlayer(player);
                         }
-                    } else if (player.isOnline()) {
-                        player.sendMessage("Coupon failed: " + response.message());
+                    } else {
+                        if (player.isOnline()) {
+                            player.sendMessage("Coupon failed: " + response.message());
+                        }
                         if (!response.retryable()) {
                             clearPendingRequestPath(redemptionPath);
                         }
@@ -370,12 +374,22 @@ public class CouponPlugin extends JavaPlugin implements Listener {
 
     private boolean finalizeDeliveredReceipt(String path, String redemptionPath) {
         String previousRequestId = "";
+        String usernamePath = "";
+        String previousPlayerName = "";
         if (!redemptionPath.isBlank()) {
             previousRequestId = getConfig().getString(redemptionPath, "");
-            if (!previousRequestId.isBlank()) {
+            usernamePath = pendingRequestUsernamePath(redemptionPath);
+            previousPlayerName = usernamePath.isBlank() ? "" : getConfig().getString(usernamePath, "");
+            if (!previousRequestId.isBlank() || !previousPlayerName.isBlank()) {
                 getConfig().set(redemptionPath, null);
+                if (!usernamePath.isBlank()) {
+                    getConfig().set(usernamePath, null);
+                }
                 if (!persistConfig()) {
-                    getConfig().set(redemptionPath, previousRequestId);
+                    getConfig().set(redemptionPath, previousRequestId.isBlank() ? null : previousRequestId);
+                    if (!usernamePath.isBlank()) {
+                        getConfig().set(usernamePath, previousPlayerName.isBlank() ? null : previousPlayerName);
+                    }
                     return false;
                 }
             }
@@ -391,6 +405,13 @@ public class CouponPlugin extends JavaPlugin implements Listener {
         }
         if (savedReceipt != null) {
             deliveryLedger.set(path, savedReceipt);
+        }
+        if (!redemptionPath.isBlank() && (!previousRequestId.isBlank() || !previousPlayerName.isBlank())) {
+            getConfig().set(redemptionPath, previousRequestId.isBlank() ? null : previousRequestId);
+            if (!usernamePath.isBlank()) {
+                getConfig().set(usernamePath, previousPlayerName.isBlank() ? null : previousPlayerName);
+            }
+            persistConfig();
         }
         return false;
     }
@@ -579,19 +600,21 @@ public class CouponPlugin extends JavaPlugin implements Listener {
         return value.endsWith("?") ? value.substring(0, value.length() - 1) : value;
     }
 
-    private String getOrCreateRequestId(UUID playerId, String couponCode) {
-        String path = pendingRequestPath(playerId, couponCode);
-        String requestId = getConfig().getString(path, "").trim();
-        if (!requestId.isBlank()) {
-            return requestId;
-        }
-        requestId = UUID.randomUUID().toString();
-        getConfig().set(path, requestId);
+    private PendingRequest getOrCreatePendingRequest(UUID playerId, String currentPlayerName, String couponCode) {
+        String requestPath = pendingRequestPath(playerId, couponCode);
+        String usernamePath = pendingRequestUsernamePath(requestPath);
+        String previousRequestId = getConfig().getString(requestPath, "").trim();
+        String previousPlayerName = getConfig().getString(usernamePath, "").trim();
+        String requestId = previousRequestId.isBlank() ? UUID.randomUUID().toString() : previousRequestId;
+        String playerName = previousPlayerName.isBlank() ? currentPlayerName : previousPlayerName;
+        getConfig().set(requestPath, requestId);
+        getConfig().set(usernamePath, playerName);
         if (!persistConfig()) {
-            getConfig().set(path, null);
-            return "";
+            getConfig().set(requestPath, previousRequestId.isBlank() ? null : previousRequestId);
+            getConfig().set(usernamePath, previousPlayerName.isBlank() ? null : previousPlayerName);
+            return new PendingRequest("", "");
         }
-        return requestId;
+        return new PendingRequest(requestId, playerName);
     }
 
     private void clearPendingRequest(UUID playerId, String couponCode) {
@@ -600,6 +623,7 @@ public class CouponPlugin extends JavaPlugin implements Listener {
 
     private void clearPendingRequestPath(String path) {
         getConfig().set(path, null);
+        getConfig().set(pendingRequestUsernamePath(path), null);
         persistConfig();
     }
 
@@ -617,6 +641,14 @@ public class CouponPlugin extends JavaPlugin implements Listener {
         }
     }
 
+    private String pendingRequestUsernamePath(String requestPath) {
+        String prefix = "pending-redemptions.";
+        if (!requestPath.startsWith(prefix)) {
+            return "";
+        }
+        return "pending-redemption-usernames." + requestPath.substring(prefix.length());
+    }
+
     private boolean isPlaceholderToken(String token) {
         return "DEFAULT_TOKEN".equalsIgnoreCase(token)
                 || "CHANGE_ME".equalsIgnoreCase(token);
@@ -629,6 +661,9 @@ public class CouponPlugin extends JavaPlugin implements Listener {
     }
 
     private record ItemReward(String itemId, int amount) {
+    }
+
+    private record PendingRequest(String requestId, String playerName) {
     }
 
     private record CouponResponse(boolean success, String message, List<ItemReward> rewards, boolean retryable) {

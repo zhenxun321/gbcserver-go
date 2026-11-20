@@ -113,6 +113,35 @@ func TestSQLiteSessionLeaseCapsTimeAndCanResumeOnHeartbeat(t *testing.T) {
 	}
 }
 
+func TestHeartbeatRejectsOnlinePlayersWhoseAccountOrSessionWasDeleted(t *testing.T) {
+	db := newTestDatabase(t)
+	insertTestUser(t, db, "RemovedPlayer", "active")
+	now := time.Date(2026, 11, 20, 12, 0, 0, 0, time.UTC)
+	service := NewSQLiteService(db)
+	service.Now = func() time.Time { return now }
+	if err := service.AuthorizePlayer(context.Background(), "survival-1", "RemovedPlayer", time.Minute); err != nil {
+		t.Fatal(err)
+	}
+	check, err := service.Check(context.Background(), "survival-1", "RemovedPlayer")
+	if err != nil || !check.Allowed {
+		t.Fatalf("test player authorization failed: result=%+v err=%v", check, err)
+	}
+	if _, err := service.Join(context.Background(), "survival-1", "RemovedPlayer", check.LoginAttemptID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.ExecContext(context.Background(), "DELETE FROM users WHERE name_key = ?", "removedplayer"); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := service.Heartbeat(context.Background(), "survival-1", []string{"RemovedPlayer"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.RejectedPlayers) != 1 || result.RejectedPlayers[0] != "RemovedPlayer" {
+		t.Fatalf("deleted account must be rejected by heartbeat: %+v", result.RejectedPlayers)
+	}
+}
+
 func TestSQLiteJoinRejectsExpiredAttemptWithoutStartingSession(t *testing.T) {
 	db := newTestDatabase(t)
 	insertTestUser(t, db, "ExpiryPlayer", "active")

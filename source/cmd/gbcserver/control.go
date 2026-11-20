@@ -176,6 +176,9 @@ func sendControlCommand(dataDir, action string) error {
 	path := filepath.Join(dataDir, controlFileName)
 	content, err := os.ReadFile(path)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("管理通道状态文件不存在；请先启动服务，并确认 --data-dir 与 start 使用的目录一致（%s）", path)
+		}
 		return fmt.Errorf("讀取管理通道失敗；服務可能尚未啟動: %w", err)
 	}
 	var state controlState

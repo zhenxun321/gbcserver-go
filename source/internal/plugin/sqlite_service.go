@@ -290,7 +290,7 @@ func (s *SQLiteService) Logout(ctx context.Context, serverID, username string) (
 	return LogoutResult{AlreadyClosed: !wasOnline, AuthorizationClosed: true}, nil
 }
 
-// Heartbeat 续租服务器仍确认在线的玩家，并拒绝已停用或封禁的账号。
+// Heartbeat 续租服务器仍确认在线的玩家，并拒绝无效账号或会话。 / Heartbeat renews active sessions and rejects invalid accounts or sessions.
 func (s *SQLiteService) Heartbeat(ctx context.Context, serverID string, usernames []string) (HeartbeatResult, error) {
 	if s == nil || s.DB == nil {
 		return HeartbeatResult{}, errors.New("plugin SQLite service 未初始化")
@@ -324,6 +324,7 @@ func (s *SQLiteService) Heartbeat(ctx context.Context, serverID string, username
 			WHERE u.name_key = ? AND s.server_id = ? LIMIT 1`, key, serverID).
 			Scan(&userID, &status, &loginAt, &lastSeenAt, &leaseExpiresAt)
 		if errors.Is(err, sql.ErrNoRows) {
+			result.RejectedPlayers = append(result.RejectedPlayers, username)
 			continue
 		}
 		if err != nil {

@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -36,5 +37,13 @@ func TestControlServerForwardsReloadAndStop(t *testing.T) {
 	server.Close()
 	if _, err := os.Stat(filepath.Join(dataDir, controlFileName)); !os.IsNotExist(err) {
 		t.Fatalf("管理通道关闭后应删除状态文件，err=%v", err)
+	}
+}
+
+func TestMissingControlStateExplainsHowToStopTheService(t *testing.T) {
+	dataDir := filepath.Join(t.TempDir(), "missing")
+	err := sendControlCommand(dataDir, "stop")
+	if err == nil || !strings.Contains(err.Error(), "请先启动服务") || !strings.Contains(err.Error(), "--data-dir") {
+		t.Fatalf("missing control state should give an actionable error, got %v", err)
 	}
 }

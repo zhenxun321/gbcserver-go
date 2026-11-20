@@ -1,9 +1,25 @@
 package main
 
 import (
+	"errors"
 	"strings"
 	"testing"
 )
+
+func TestBackgroundStartupErrorsUseSelectedLanguage(t *testing.T) {
+	previousLanguage := activeCLILanguage
+	activeCLILanguage = cliLanguageEnglish
+	t.Cleanup(func() { activeCLILanguage = previousLanguage })
+
+	err := cliErrorf("等待 %s 超时", controlFileName)
+	err = cliErrorf("%w；后台进程退出：%v", err, errors.New("exit status 1"))
+	err = cliErrorf("%w；PID=%d，日志：%s", err, 123, "gbcserver.log")
+	for _, expected := range []string{"Timed out waiting for .gbcserver-control.json", "background process exited", "PID=123, log: gbcserver.log"} {
+		if !strings.Contains(err.Error(), expected) {
+			t.Fatalf("English background startup error %q does not contain %q", err, expected)
+		}
+	}
+}
 
 func TestDetectCLILanguage(t *testing.T) {
 	tests := []struct {

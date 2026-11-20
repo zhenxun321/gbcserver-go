@@ -15,6 +15,11 @@ Gbcserver-Go provides player login, daily check-ins, a shop, an administration p
 - [修复] 同一 TOTP 验证码不能重复用于登录或双重验证设置。
 - [修复] 管理员名等动态内容不会被网页翻译改写，补齐令牌管理页英文提示。
 - [修复] 无效初始化密钥不会留下半初始化账户；CLI 错误提示保持所选语言。
+- [修复] Linux 后台启动等待 Web 与插件 listener 就绪；失败时返回错误、清理本次状态和 PID，并保留日志路径。
+- [修复] 正式版升级时使用内嵌管理员页面，旧数据目录文件不会覆盖新初始化页面。
+- [修复] 删除网站用户后，白名单心跳会要求游戏服移除该在线玩家。
+- [修复] 兑换重试固定使用首次请求的玩家名，避免改名后丢失已兑换奖励；明确拒绝会清理重试状态，即使玩家已下线。
+- [修复] 启用双重验证时，管理员登录页正确显示验证码输入框。
 - [更新] 网页图标与二维码使用本地资源。
 
 ## 安装与启动
@@ -42,6 +47,11 @@ Windows 程序使用自签名代码签名证书。Windows 默认不信任该证�
 - [Fixed] TOTP codes cannot be reused for login or two-factor settings.
 - [Fixed] Dynamic account names are excluded from web translation, and token management prompts are translated.
 - [Fixed] Invalid setup secrets no longer leave a partially configured administrator; CLI errors follow the selected language.
+- [Fixed] Linux background startup waits for both Web and plugin listeners. Failed startup returns an error, removes its state and PID files, and reports the log path.
+- [Fixed] Release builds use embedded administrator pages so old files in the data directory cannot override the setup page.
+- [Fixed] Whitelist heartbeat removes online players after their website account is deleted.
+- [Fixed] Coupon retries keep the original player name so a rename cannot lose an already redeemed reward. Definitive rejections clear retry state even if the player disconnects.
+- [Fixed] The administrator login page now shows the code field when two-factor authentication is enabled.
 - [Fixed] Prevented an older session from overwriting a two-factor secret changed by another session.
 - [Updated] Web icons and QR codes use local resources.
 

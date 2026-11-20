@@ -1115,6 +1115,13 @@
 
             // 切换管理员登录模式
             
+            function setAdminTOTPLoginVisibility(enabled) {
+    const group = document.getElementById('login-totp')?.closest('.group');
+    if (!group) return;
+    group.hidden = !enabled;
+    group.style.display = enabled ? '' : 'none';
+}
+
             // 登录功能（完整版）
             async function login() {
     const username = document.getElementById('login-username')?.value.trim() || '';
@@ -1128,8 +1135,7 @@
         const statusResponse = await fetch('/api/admin/status', { cache: 'no-store' });
         const adminStatus = await statusResponse.json();
         if (!statusResponse.ok || adminStatus.success === false) throw new Error(adminStatus.message || '无法读取管理员状态');
-        const totpInput = document.getElementById('login-totp');
-        if (totpInput) totpInput.closest('.group').hidden = !adminStatus.totpEnabled;
+        setAdminTOTPLoginVisibility(Boolean(adminStatus.totpEnabled));
         if (adminStatus.totpEnabled && !totp) throw new Error('请输入 TOTP 验证码');
         const response = await fetch('/api/adminLogin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: username, passwd: password, totp }) });
         const result = await response.json();
@@ -1687,8 +1693,7 @@ window.addEventListener('load', async () => {
     try {
         const response = await fetch('/api/admin/status', { cache: 'no-store' });
         const result = await response.json();
-        const input = document.getElementById('login-totp');
-        if (input) input.closest('.group').hidden = !result.totpEnabled;
+        setAdminTOTPLoginVisibility(Boolean(result.totpEnabled));
     } catch (_) {
         // 登录时仍会重新读取服务端状态。 / The login flow still checks the server state.
     }

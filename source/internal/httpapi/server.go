@@ -263,7 +263,7 @@ func (s *Server) routes() {
 		var staticFiles fs.FS
 		switch {
 		case s.staticFS != nil && s.staticDir != "":
-			staticFiles = fallbackFS{primary: os.DirFS(s.staticDir), fallback: s.staticFS}
+			staticFiles = fallbackFS{primary: os.DirFS(s.staticDir), fallback: s.staticFS, embeddedAdmin: s.Config.GitHubRelease}
 		case s.staticFS != nil:
 			staticFiles = s.staticFS
 		default:
@@ -299,6 +299,8 @@ func (s *Server) routes() {
 		http.Redirect(w, r, adminPath+"/", http.StatusPermanentRedirect)
 	})
 	s.mux.Handle(adminPath+"/", http.StripPrefix(adminPath, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("Pragma", "no-cache")
 		if r.URL.Path == "" || r.URL.Path == "/" {
 			r.URL.Path = "/admin.html"
 		}
@@ -334,11 +336,17 @@ func isIndexHomepageAsset(requestPath string) bool {
 
 // fallbackFS 让部署目录中的可写上传文件覆盖内嵌只读资源，其他文件从内嵌 FS 提供。
 type fallbackFS struct {
-	primary  fs.FS
-	fallback fs.FS
+	primary       fs.FS
+	fallback      fs.FS
+	embeddedAdmin bool
 }
 
 func (f fallbackFS) Open(name string) (fs.File, error) {
+	if f.embeddedAdmin && isProtectedAdminAsset("/"+name) {
+		if file, err := f.fallback.Open(name); err == nil {
+			return file, nil
+		}
+	}
 	if file, err := f.primary.Open(name); err == nil {
 		return file, nil
 	}

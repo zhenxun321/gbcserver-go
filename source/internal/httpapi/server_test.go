@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -836,6 +838,60 @@ func TestAdminPageIsOnlyAvailableAtConfiguredEntry(t *testing.T) {
 		if response.Code != test.wantStatus || (test.wantBody != "" && !strings.Contains(response.Body.String(), test.wantBody)) ||
 			(test.wantLocation != "" && response.Header().Get("Location") != test.wantLocation) {
 			t.Errorf("%s: got %d %q, want %d containing %q", test.path, response.Code, response.Body.String(), test.wantStatus, test.wantBody)
+		}
+	}
+}
+
+func TestGitHubReleaseUsesEmbeddedAdminAssetsOverStaleDeploymentFiles(t *testing.T) {
+	db, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	db.SetMaxOpenConns(1)
+	if err := store.Migrate(context.Background(), db); err != nil {
+		t.Fatal(err)
+	}
+	staticDir := t.TempDir()
+	for name, contents := range map[string]string{
+		"admin.html":      "stale setup with TOTP",
+		"admin-config.js": "stale setup request",
+		"admin-legacy.js": "stale login script",
+		"admin-tokens.js": "stale token script",
+		"i18n-admin.js":   "stale translation script",
+		"login.html":      "custom player page",
+	} {
+		if err := os.WriteFile(filepath.Join(staticDir, name), []byte(contents), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	embedded := fstest.MapFS{
+		"admin.html":      &fstest.MapFile{Data: []byte("current setup without TOTP")},
+		"admin-config.js": &fstest.MapFile{Data: []byte("current setup request")},
+		"admin-legacy.js": &fstest.MapFile{Data: []byte("current login script")},
+		"admin-tokens.js": &fstest.MapFile{Data: []byte("current token script")},
+		"i18n-admin.js":   &fstest.MapFile{Data: []byte("current translation script")},
+		"login.html":      &fstest.MapFile{Data: []byte("embedded player page")},
+	}
+	server, err := New(db, staticDir, "", Config{GitHubRelease: true, StaticFS: embedded})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for requestPath, expected := range map[string]string{
+		"/admin/":                "current setup without TOTP",
+		"/admin/admin-config.js": "current setup request",
+		"/admin/admin-legacy.js": "current login script",
+		"/admin/admin-tokens.js": "current token script",
+		"/admin/i18n-admin.js":   "current translation script",
+		"/login.html":            "custom player page",
+	} {
+		response := httptest.NewRecorder()
+		server.ServeHTTP(response, httptest.NewRequest(http.MethodGet, requestPath, nil))
+		if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), expected) {
+			t.Errorf("%s returned %d %q, want %q", requestPath, response.Code, response.Body.String(), expected)
+		}
+		if strings.HasPrefix(requestPath, "/admin/") && response.Header().Get("Cache-Control") != "no-store" {
+			t.Errorf("%s must not be cached, got Cache-Control=%q", requestPath, response.Header().Get("Cache-Control"))
 		}
 	}
 }

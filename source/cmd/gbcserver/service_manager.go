@@ -59,12 +59,12 @@ func runControlCommand(action string, args []string) int {
 
 func runManagedStart(dataDir, _ string, tray bool) int {
 	commands := make(chan managedCommand, 1)
-	control, err := startControlServer(dataDir, commands)
-	if err != nil {
-		cliFprintln(os.Stderr, err)
-		return 1
-	}
-	defer control.Close()
+	var control *controlServer
+	defer func() {
+		if control != nil {
+			control.Close()
+		}
+	}()
 
 	processContext, stopSignals := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stopSignals()
@@ -102,6 +102,15 @@ func runManagedStart(dataDir, _ string, tray bool) int {
 			}
 			cliFprintln(os.Stderr, "GBC Server 启动失败:", err)
 			return 1
+		}
+		if control == nil {
+			control, err = startControlServer(dataDir, commands)
+			if err != nil {
+				runtime.cancel()
+				waitForServiceExits(runtime.results, 2)
+				cliFprintln(os.Stderr, "GBC Server 管理通道启动失败:", err)
+				return 1
+			}
 		}
 
 	commandLoop:

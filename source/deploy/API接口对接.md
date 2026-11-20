@@ -127,10 +127,12 @@ Content-Type: application/json
 | --- | --- | --- |
 | `/check/{username}` | 空 body | `{"allowed":true,"reason":"authorized","loginAttemptId":"...","expiresAt":<毫秒时间戳>}`。业务拒绝返回 `403`、`allowed:false` 与稳定 `reason`。 |
 | `/join/{username}` | Header `X-Login-Attempt-ID: <loginAttemptId>` | `{"ok":true,"alreadyOpen":false}`。仅确认 `/check` 创建的有效登录尝试。 |
-| `/heartbeat` | JSON `{"players":["Steve","Alex"]}` | `{"ok":true,"rejectedPlayers":[]}`；最多 5000 名玩家。 |
+| `/heartbeat` | JSON `{"players":["Steve","Alex"]}` | `{"ok":true,"rejectedPlayers":[]}`；最多 5000 名玩家。无有效账户或在线授权记录的在线玩家会列入 `rejectedPlayers`，插件应将其移出服务器。 |
 | `/logout/{username}` | 空 body | `{"ok":true,"alreadyClosed":false}`。 |
 
 鉴权失败返回 401，scope 不匹配或来源不允许返回 403，方法不支持返回 405，服务/数据库暂不可用返回 503。插件应按 fail-closed 策略处理白名单错误。令牌只放在插件配置和受限的服务端密钥存储中，不能放进网页代码。
+
+English: Heartbeat reports online names without a valid account or online authorization in `rejectedPlayers`. The whitelist plugin should remove those players from the game server.
 
 ## CouponPlugin 兑换接口
 
