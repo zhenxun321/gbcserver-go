@@ -1,5 +1,5 @@
 param(
-    [string]$OutputDirectory = "目标文件/v1.0.2-build",
+    [string]$OutputDirectory = "目标文件/v1.0.3-build",
     [string]$SigningCertificateThumbprint = '',
     [switch]$RequireWindowsSignature
 )
@@ -39,9 +39,9 @@ New-Item -ItemType Directory -Path $embeddedWeb -Force | Out-Null
 Get-ChildItem -LiteralPath $embeddedWeb -Force | Remove-Item -Recurse -Force
 $embeddedRootFiles = @(
     'admin.html', 'login.html', 'ping.html', 'admin.css', 'admin-config.js', 'admin-legacy.js',
-    'admin-tokens.js', 'player.js', 'status-page.js', 'theme.js', 'site-config.js',
+    'admin-tokens.js', 'player.js', 'status-page.js', 'theme.js',
     'interaction-effects.js', 'i18n.js', 'i18n-player.js', 'i18n-admin.js', 'minecraft-items.json', 'system-redesign.css',
-    'material.css',
+    'material.css', 'shell-layout.css',
     'interaction-effects.css', 'theme.css', 'visual-polish.css', 'status-redesign.css'
 )
 foreach ($fileName in $embeddedRootFiles) {

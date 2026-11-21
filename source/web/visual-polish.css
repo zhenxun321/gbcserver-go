@@ -360,11 +360,6 @@ html .system-page .login-logo-image { position: relative; box-shadow: 0 0 0 6px 
 .system-page .login-button:not(.admin-login-button) { box-shadow: 0 5px 14px var(--focus), inset 0 1px 0 rgba(255,255,255,.18); transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease; }
 .system-page .login-button:not(.admin-login-button):hover { transform: translateY(-2px); box-shadow: 0 8px 20px var(--focus); }
 .system-page .login-button:not(.admin-login-button):active { transform: translateY(0); }
-.system-page .main-content::before {
-    content: ""; position: absolute; z-index: -1; top: 0; left: 0; right: 0; height: 190px;
-    background: linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-    background-size: 32px 32px; mask-image: linear-gradient(#000, transparent); pointer-events: none;
-}
 .system-page .sidebar-header { position: relative; overflow: hidden; background: var(--surface-soft); }
 .system-page .sidebar-header::after { content: ""; position: absolute; width: 58px; height: 58px; right: -18px; top: 25px; border: 1px solid var(--decor-line); border-radius: 6px; transform: rotate(25deg); box-shadow: 0 0 0 12px var(--decor-fill); pointer-events: none; }
 .system-page .nav-item.active { box-shadow: inset 3px 0 0 var(--primary); }

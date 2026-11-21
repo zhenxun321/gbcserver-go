@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"gbcserver/source/internal/plugin"
 	"golang.org/x/crypto/bcrypt"
@@ -21,7 +20,6 @@ import (
 // 管理员页面可以修改的配置键。密码哈希、控制通道和数据库连接信息永不开放给页面。
 var adminEditableConfigKeys = map[string]struct{}{
 	"httpPort": {}, "httpsPort": {}, "adminPath": {}, "adminUsername": {},
-	"siteName": {}, "loginPageTitle": {}, "statusPageTitle": {}, "statusPageFooter": {},
 	"whitelistListen": {}, "couponListen": {}, "staticDir": {}, "avatarDir": {}, "tlsKeyFile": {}, "tlsCertFile": {},
 	"bodyLimitBytes": {}, "serverID": {}, "webhookPath": {}, "signTimezoneOffset": {}, "maxOnlineTime": {}, "onlineMode": {},
 	"mailHost": {}, "mailPort": {}, "mailUsername": {}, "mailPassword": {}, "mailFromName": {}, "mailFromAddress": {}, "mailSecure": {},
@@ -30,42 +28,10 @@ var adminEditableConfigKeys = map[string]struct{}{
 	"statusAlertWebhookEnabled": {}, "statusAlertWebhookURL": {}, "statusAlertRecoveryEnabled": {},
 }
 
-var siteBrandingDefaults = map[string]string{
-	"siteName":         "嘎嘣脆综合管理系统",
-	"loginPageTitle":   "嘎嘣脆综合管理系统",
-	"statusPageTitle":  "实时状态监控",
-	"statusPageFooter": "© 2024-2026 嘎嘣脆 | 监控系统版本 v1.0.2",
-}
-
 var statusMonitorConfigDefaults = map[string]string{
 	"statusMonitorInterval": "1m", "statusAlertAfter": "2m", "statusAlertEmailEnabled": "false",
 	"statusAlertEmail": "", "statusAlertWebhookEnabled": "false", "statusAlertWebhookURL": "",
 	"statusAlertRecoveryEnabled": "true",
-}
-
-func (s *Server) siteBrandingConfig(ctx context.Context) (map[string]string, error) {
-	branding := make(map[string]string, len(siteBrandingDefaults))
-	for key, fallback := range siteBrandingDefaults {
-		value, exists, err := s.configStore.Get(ctx, key)
-		if err != nil {
-			return nil, err
-		}
-		if exists && strings.TrimSpace(value) != "" {
-			branding[key] = strings.TrimSpace(value)
-		} else {
-			branding[key] = fallback
-		}
-	}
-	return branding, nil
-}
-
-func requiresRuntimeReload(updates map[string]string) bool {
-	for key := range updates {
-		if _, isBrandingField := siteBrandingDefaults[key]; !isBrandingField {
-			return true
-		}
-	}
-	return false
 }
 
 func (s *Server) adminConfigured() bool {
@@ -224,11 +190,6 @@ func (s *Server) adminConfigSnapshot(ctx context.Context) (map[string]any, error
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	for key, fallback := range siteBrandingDefaults {
-		if value, exists := values[key]; !exists || strings.TrimSpace(value) == "" {
-			values[key] = fallback
-		}
-	}
 	for key, fallback := range statusMonitorConfigDefaults {
 		if _, exists := values[key]; !exists {
 			values[key] = fallback
@@ -291,18 +252,6 @@ func validateAdminConfigValue(key, value string) (string, error) {
 		return validateStatusAlertEmail(trimmed)
 	case "statusAlertWebhookURL":
 		return validateStatusAlertWebhook(trimmed)
-	case "siteName", "loginPageTitle", "statusPageTitle", "statusPageFooter":
-		if trimmed == "" {
-			return "", fmt.Errorf("%s 不能为空", key)
-		}
-		maxRunes := 160
-		if key == "siteName" || key == "loginPageTitle" || key == "statusPageTitle" {
-			maxRunes = 100
-		}
-		if utf8.RuneCountInString(trimmed) > maxRunes {
-			return "", fmt.Errorf("%s 不能超过 %d 个字符", key, maxRunes)
-		}
-		return trimmed, nil
 	case "whitelistListen", "couponListen":
 		if err := plugin.ValidateListenAddress(trimmed); err != nil {
 			return "", fmt.Errorf("%s 无效: %w", key, err)
@@ -530,7 +479,7 @@ func (s *Server) handleAdminConfig(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		reloadRequired = requiresRuntimeReload(updates)
+		reloadRequired = len(updates) > 0
 		if value, ok := updates["adminPath"]; ok {
 			s.Config.AdminPath = value
 		}

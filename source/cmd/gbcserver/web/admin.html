@@ -3,7 +3,7 @@
     <meta charset="utf-8">
     <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport">
     <meta content="#101722" name="theme-color">
-    <title data-site-title="siteName">嘎嘣脆综合管理系统</title>
+    <title>嘎嘣脆综合管理系统</title>
     <link href="/images/logo.png" rel="icon" type="image/png">
     <script src="/theme.js"></script>
     <script defer src="/i18n-player.js"></script>
@@ -16,10 +16,10 @@
     <link href="/interaction-effects.css" rel="stylesheet">
     <link href="/theme.css" rel="stylesheet">
     <link href="/visual-polish.css" rel="stylesheet">
-    <script defer src="/site-config.js"></script>
     
     <link rel="stylesheet" href="admin.css">
     <link rel="stylesheet" href="/material.css">
+    <link rel="stylesheet" href="/shell-layout.css">
 </head>
 
 <body class="loading system-page admin-page">
@@ -44,28 +44,30 @@
             </div>
         </div>
         <!-- 登录界面 -->
-        <div class="login-container" id="login-page">
+        <main class="login-container" id="login-page" aria-labelledby="login-title">
             <div class="login-decoration" aria-hidden="true">
                 <span class="scene-block scene-block-one"></span>
                 <span class="scene-block scene-block-two"></span>
                 <span class="scene-block scene-block-three"></span>
                 <span class="scene-block scene-block-four"></span>
             </div>
-            <div class="login-toolbar">
+            <header class="login-toolbar">
                 <a class="back-home" href="/login.html">
                     <i aria-hidden="true" class="fas fa-arrow-left"></i>
                     <span>玩家登录</span>
                 </a>
-                <button aria-label="切换深浅主题" class="login-theme-button" data-theme-toggle="" title="切换深浅主题" type="button">
-                    <i aria-hidden="true" class="fas fa-circle-half-stroke"></i>
-                </button>
-                <button class="language-toggle" data-language-toggle type="button" aria-label="Switch language" title="Switch language">EN</button>
-            </div>
+                <div class="login-toolbar-actions">
+                    <button aria-label="切换深浅主题" class="login-theme-button" data-theme-toggle="" title="切换深浅主题" type="button">
+                        <i aria-hidden="true" class="fas fa-circle-half-stroke"></i>
+                    </button>
+                    <button class="language-toggle" data-language-toggle type="button" aria-label="Switch language" title="Switch language">EN</button>
+                </div>
+            </header>
             <div class="login-card">
                 <div class="login-logo">
                     <img alt="" class="login-logo-image" src="/images/logo.png">
                     <span class="login-logo-kicker">GBC MANAGEMENT</span>
-                    <h1>管理员控制台</h1>
+                    <h1 id="login-title">管理员控制台</h1>
                     <p>安全管理入口</p>
                 </div>
                 <div class="login-form">
@@ -89,8 +91,8 @@
                     
                 <p id="admin-login-status" role="status" aria-live="polite"></p></div>
             </div><section id="admin-setup-panel" class="login-card admin-setup-card" style="display: none;"><div class="login-logo"><span class="login-logo-kicker">FIRST RUN</span><h2>初始化管理员</h2><p>设置管理员账户和密码</p></div><form id="admin-setup-form" class="login-form"><div class="group"><input class="input" id="setup-username" required="" autocomplete="username" placeholder=" "><span class="highlight"></span><span class="bar"></span><label for="setup-username">管理员账户</label></div><div class="group"><input class="input" id="setup-password" type="password" minlength="8" required="" autocomplete="new-password" placeholder=" "><span class="highlight"></span><span class="bar"></span><label for="setup-password">管理员密码（至少 8 位）</label></div><button class="login-button" type="submit">完成初始化</button><p id="admin-auth-status" role="status"></p></form></section>
-            <p class="login-footer">© 2024-2026 <span data-site-field="siteName">嘎嘣脆综合管理系统</span></p>
-        </div>
+            <p class="login-footer">© 2024-2026 嘎嘣脆综合管理系统</p>
+        </main>
         <!-- 注册/忘记密码弹窗 -->
         
         <!-- 主系统界面 -->
@@ -98,8 +100,13 @@
             <!-- 左侧导航栏 -->
             <nav aria-label="管理员导航" class="sidebar">
                 <div class="sidebar-header">
-                    <h2 data-site-field="siteName">嘎嘣脆综合管理系统</h2>
-                    <p>综合管理系统</p>
+                    <div class="sidebar-brand">
+                        <img alt="" class="sidebar-logo" height="44" src="/images/logo.png" width="44">
+                        <div class="sidebar-brand-copy">
+                            <h2>嘎嘣脆综合管理系统</h2>
+                            <p>综合管理系统</p>
+                        </div>
+                    </div>
                 </div>
                 <div class="nav-item active" data-page="user-center" onclick="switchPage('user-center')">
                     <i aria-hidden="true" class="fas fa-users nav-icon"></i>
@@ -113,9 +120,7 @@
                 
                 
                 <div class="nav-item" data-page="admin-config" onclick="switchPage('admin-config')"><i aria-hidden="true" class="fas fa-sliders nav-icon"></i><span class="nav-text">运行配置</span></div>
-                <div class="nav-item" data-page="plugin-tokens" onclick="switchPage('plugin-tokens')"><i aria-hidden="true" class="fas fa-key nav-icon"></i><span class="nav-text">插件接入</span></div><div class="nav-divider"></div>
-                
-                
+                <div class="nav-item" data-page="plugin-tokens" onclick="switchPage('plugin-tokens')"><i aria-hidden="true" class="fas fa-key nav-icon"></i><span class="nav-text">插件接入</span></div>
                 <div class="nav-divider"></div>
                 <div aria-label="切换深浅主题" class="nav-item theme-item" data-theme-toggle="" id="theme-toggle-item" role="button" tabindex="0">
                     <i aria-hidden="true" class="fas fa-circle-half-stroke nav-icon"></i>
@@ -127,9 +132,9 @@
                 </div>
             </nav>
             <!-- 主内容区域 -->
-            <div class="main-content">
+            <main class="main-content">
                 <!-- 头部区域 -->
-                <div class="header">
+                <header class="header">
                     <h1 class="page-title" id="page-title">用户中心</h1>
                     <div class="header-actions">
                     <button class="language-toggle" data-language-toggle type="button" aria-label="Switch language" title="Switch language">EN</button>
@@ -143,20 +148,26 @@
                         </div>
                     </div>
                     </div>
-                </div>
+                </header>
                 <!-- 用户中心页面 -->
                 <div class="page-content" id="user-center">
                     <div class="content-card user-center-card">
                         <div class="card-header user-center-header">
                             <div>
                                 <span class="section-kicker" id="user-center-kicker">PLAYER OVERVIEW</span>
-                                <h2 id="user-center-title">账户概览</h2>
+                                <h2 id="user-center-title">账户列表</h2>
                                 <p class="section-description" id="user-center-description">查看游戏连接状态与账户数据</p>
                             </div>
-                            <button type="button" class="action-button user-center-refresh" id="user-center-refresh" onclick="refreshUserCenter()">
-                                <i aria-hidden="true" class="fas fa-sync-alt"></i>
-                                刷新
-                            </button>
+                            <div class="user-center-actions">
+                                <button type="button" class="action-button primary admin-only" id="add-user-button" onclick="openCreateUserModal()">
+                                    <i aria-hidden="true" class="fas fa-plus"></i>
+                                    添加用户
+                                </button>
+                                <button type="button" class="action-button user-center-refresh" id="user-center-refresh" onclick="refreshUserCenter()">
+                                    <i aria-hidden="true" class="fas fa-sync-alt"></i>
+                                    刷新
+                                </button>
+                            </div>
                         </div>
                         <div class="user-center-content" id="user-center-content">
                             
@@ -201,7 +212,6 @@
                     <div class="content-card">
                         <div class="card-header shop-page-header">
                             <div class="shop-page-heading">
-                                <h2>积分商城</h2>
                                 <p class="shop-page-subtitle">兑换后库存和积分会从服务器自动同步</p>
                             </div>
                             <div class="actions">
@@ -357,6 +367,30 @@
                             </div>
                         </div>
                     </div>
+                    <div class="modal" id="coupon-modal" aria-hidden="true" onclick="if (event.target === this) closeCouponModal()">
+                        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="coupon-modal-title">
+                            <button class="close-button" type="button" aria-label="关闭窗口" title="关闭窗口" onclick="closeCouponModal()"><i aria-hidden="true" class="fas fa-xmark"></i></button>
+                            <div class="modal-header">
+                                <span class="modal-heading-icon" aria-hidden="true"><i class="fas fa-ticket"></i></span>
+                                <h2 id="coupon-modal-title">兑换码已生成</h2>
+                            </div>
+                            <div class="modal-body coupon-result-body">
+                                <div class="coupon-result-field">
+                                    <span>兑换内容</span>
+                                    <strong id="coupon-item-name"></strong>
+                                </div>
+                                <div class="coupon-result-field">
+                                    <span>兑换码</span>
+                                    <strong id="coupon-code"></strong>
+                                </div>
+                                <p class="coupon-expiry"><i class="fas fa-clock" aria-hidden="true"></i><span>有效期至</span><time id="coupon-expiry-date"></time></p>
+                            </div>
+                            <div class="modal-footer">
+                                <button class="server-button" type="button" onclick="closeCouponModal()">关闭</button>
+                                <button class="login-button" type="button" onclick="copyCouponCode()"><i class="fas fa-copy" aria-hidden="true"></i> 复制兑换码</button>
+                            </div>
+                        </div>
+                    </div>
                     <!-- 添加商品弹窗 -->
                     <div class="modal" id="item-modal" aria-hidden="true" onclick="if (event.target === this) closeItemModal()">
                         <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="item-modal-title">
@@ -405,17 +439,10 @@
         <span class="admin-badge success">已连接</span>
       </div>
       <form id="configForm" class="admin-config-form">
-        <fieldset class="admin-config-group site-branding-group">
-          <legend>站点文案</legend>
-          <div class="admin-field"><label for="siteName">系统名称</label><input id="siteName" data-key="siteName" maxlength="100" required></div>
-          <div class="admin-field"><label for="loginPageTitle">玩家登录页标题</label><input id="loginPageTitle" data-key="loginPageTitle" maxlength="100" required></div>
-          <div class="admin-field"><label for="statusPageTitle">状态页标题</label><input id="statusPageTitle" data-key="statusPageTitle" maxlength="100" required></div>
-          <div class="admin-field wide site-footer-field"><label for="statusPageFooter">状态页页脚</label><input id="statusPageFooter" data-key="statusPageFooter" maxlength="160" required></div>
-        </fieldset>
         <fieldset class="admin-config-group">
           <legend>Web 与管理员</legend>
-          <div class="admin-field" data-github-hide><label for="httpPort">HTTP 端口</label><input id="httpPort" data-key="httpPort" type="number" min="1" max="65535"></div>
-          <div class="admin-field" data-github-hide><label for="httpsPort">HTTPS 端口</label><input id="httpsPort" data-key="httpsPort" type="number" min="1" max="65535"></div>
+          <div class="admin-field"><label for="httpPort">HTTP 端口</label><input id="httpPort" data-key="httpPort" type="number" min="1" max="65535"></div>
+          <div class="admin-field"><label for="httpsPort">HTTPS 端口</label><input id="httpsPort" data-key="httpsPort" type="number" min="1" max="65535"></div>
           <div class="admin-field"><label for="adminPath">管理员安全入口</label><input id="adminPath" data-key="adminPath" placeholder="/admin"></div>
           <div class="admin-field"><label for="adminUsername">管理员账户</label><input id="adminUsername" data-key="adminUsername" autocomplete="username"></div>
           <div class="admin-field"><label for="adminPassword">新管理员密码</label><input id="adminPassword" data-key="adminPassword" type="password" minlength="8" autocomplete="new-password" placeholder="留空表示不修改"></div>
@@ -423,41 +450,42 @@
             <legend>双重验证</legend>
             <p id="admin-totp-state" class="admin-muted" role="status" aria-live="polite">读取双重验证状态</p>
             <div class="admin-actions">
-              <button id="admin-totp-begin" class="admin-button secondary" type="button">设置或更换验证器</button>
-              <button id="admin-totp-disable" class="admin-button danger" type="button" hidden>关闭双重验证</button>
+              <button id="admin-totp-begin" class="admin-button secondary" type="button" aria-controls="admin-totp-enrollment" aria-expanded="false">设置或更换验证器</button>
+              <button id="admin-totp-disable" class="admin-button danger" type="button" aria-controls="admin-totp-disable-form" aria-expanded="false" hidden>关闭双重验证</button>
             </div>
-            <div id="admin-totp-current-field" class="admin-field" hidden><label for="admin-totp-current-code">当前验证器验证码</label><input id="admin-totp-current-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></div>
-            <div id="admin-totp-enrollment" hidden>
+            <div class="admin-field totp-custom-secret-field"><label for="admin-totp-custom-secret">自定义 TOTP 密钥</label><input id="admin-totp-custom-secret" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="留空自动生成密钥"></div>
+            <div id="admin-totp-current-field" class="admin-field" hidden><label for="admin-totp-current-code">当前验证器验证码</label><input id="admin-totp-current-code" type="text" inputmode="numeric" pattern="[0-9]{6}" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" maxlength="6"></div>
+            <div id="admin-totp-enrollment" aria-hidden="true" hidden>
               <p>使用验证器扫描二维码，或手动输入密钥。</p>
               <img id="admin-totp-qr" alt="双重验证二维码" width="192" height="192">
-              <code id="admin-totp-secret"></code>
-              <div class="admin-field"><label for="admin-totp-confirm-code">新验证器验证码</label><input id="admin-totp-confirm-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></div>
-              <button id="admin-totp-confirm" class="admin-button primary" type="button">验证并启用</button>
-              <button id="admin-totp-cancel" class="admin-button ghost" type="button">取消</button>
+              <div class="totp-secret-actions"><code id="admin-totp-secret"></code><button id="admin-totp-copy-secret" class="admin-button secondary" type="button" disabled><i class="fas fa-copy" aria-hidden="true"></i><span>复制密钥</span></button></div>
+              <div class="admin-field"><label for="admin-totp-confirm-code">新验证器验证码</label><input id="admin-totp-confirm-code" type="text" inputmode="numeric" pattern="[0-9]{6}" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" maxlength="6"></div>
+              <div class="admin-actions"><button id="admin-totp-confirm" class="admin-button primary" type="button">验证并启用</button>
+              <button id="admin-totp-cancel" class="admin-button ghost" type="button">取消</button></div>
             </div>
             <p id="admin-totp-message" class="admin-message" role="status" aria-live="polite"></p>
           </fieldset>
-          <fieldset id="admin-totp-disable-form" class="admin-config-group wide" hidden>
+          <fieldset id="admin-totp-disable-form" class="admin-config-group wide" aria-hidden="true" hidden>
             <legend>确认关闭双重验证</legend>
             <div class="admin-field"><label for="admin-totp-disable-password">管理员密码</label><input id="admin-totp-disable-password" type="password" autocomplete="current-password"></div>
-            <div class="admin-field"><label for="admin-totp-disable-code">当前验证码</label><input id="admin-totp-disable-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></div>
+            <div class="admin-field"><label for="admin-totp-disable-code">当前验证码</label><input id="admin-totp-disable-code" type="text" inputmode="numeric" pattern="[0-9]{6}" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" maxlength="6"></div>
             <div class="admin-actions"><button id="admin-totp-disable-confirm" class="admin-button danger" type="button">确认关闭</button><button id="admin-totp-disable-cancel" class="admin-button ghost" type="button">取消</button></div>
           </fieldset>
-          <div class="admin-field" data-github-hide><label for="bodyLimitBytes">请求体上限（字节）</label><input id="bodyLimitBytes" data-key="bodyLimitBytes" type="number" min="1024"></div>
-          <div class="admin-field" data-github-hide><label for="serverID">插件服务 ID（白名单/兑换）</label><input id="serverID" data-key="serverID"></div>
-          <div class="admin-field wide" data-github-hide><label for="webhookPath">Webhook 路径</label><input id="webhookPath" data-key="webhookPath"></div>
-          <div class="admin-field" data-github-hide><label for="signTimezoneOffset">登录/签到时区偏移</label><input id="signTimezoneOffset" data-key="signTimezoneOffset" type="number" min="-12" max="14"></div>
-          <div class="admin-field" data-github-hide><label for="maxOnlineTime">最长授权时长</label><input id="maxOnlineTime" data-key="maxOnlineTime" placeholder="例如 1h"></div>
-          <div class="admin-field" data-github-hide><label for="onlineMode">正版 UUID 查询</label><select id="onlineMode" data-key="onlineMode"><option value="false">停用</option><option value="true">开启</option></select></div>
+          <div class="admin-field"><label for="bodyLimitBytes">请求体上限（字节）</label><input id="bodyLimitBytes" data-key="bodyLimitBytes" type="number" min="1024"></div>
+          <div class="admin-field"><label for="serverID">插件服务 ID（白名单/兑换）</label><input id="serverID" data-key="serverID"></div>
+          <div class="admin-field wide"><label for="webhookPath">Webhook 路径</label><input id="webhookPath" data-key="webhookPath"></div>
+          <div class="admin-field"><label for="signTimezoneOffset">登录/签到时区偏移</label><input id="signTimezoneOffset" data-key="signTimezoneOffset" type="number" min="-12" max="14"></div>
+          <div class="admin-field"><label for="maxOnlineTime">最长授权时长</label><input id="maxOnlineTime" data-key="maxOnlineTime" placeholder="例如 1h"></div>
+          <div class="admin-field"><label for="onlineMode">正版 UUID 查询</label><select id="onlineMode" data-key="onlineMode"><option value="false">停用</option><option value="true">开启</option></select></div>
         </fieldset>
 
-        <fieldset class="admin-config-group" data-github-hide>
+        <fieldset class="admin-config-group">
           <legend>内网插件接口</legend>
           <div class="admin-field"><label for="whitelistListen">白名单监听地址</label><input id="whitelistListen" data-key="whitelistListen" placeholder="127.0.0.1:18094"></div>
           <div class="admin-field"><label for="couponListen">兑换监听地址</label><input id="couponListen" data-key="couponListen" placeholder="127.0.0.1:18095"></div>
         </fieldset>
 
-        <fieldset class="admin-config-group" data-github-hide>
+        <fieldset class="admin-config-group">
           <legend>目录与证书</legend>
           <div class="admin-field"><label for="staticDir">网页目录</label><input id="staticDir" data-key="staticDir"></div>
           <div class="admin-field"><label for="avatarDir">头像目录</label><input id="avatarDir" data-key="avatarDir"></div>
@@ -467,7 +495,7 @@
 
         <fieldset class="admin-config-group">
           <legend>邮件与状态</legend>
-          <details class="admin-config-details" data-github-hide>
+          <details class="admin-config-details">
             <summary>SMTP 发件配置</summary>
             <div class="admin-config-details-grid">
               <div class="admin-field"><label for="mailHost">SMTP 主机</label><input id="mailHost" data-key="mailHost"></div>
@@ -514,8 +542,8 @@
               </div>
             </div>
           </details>
-          <div class="admin-field wide" data-github-hide><label for="mojangEndpoint">Mojang API</label><input id="mojangEndpoint" data-key="mojangEndpoint"></div>
-          <div class="admin-field" data-github-hide><label for="mojangTimeout">Mojang 超时</label><input id="mojangTimeout" data-key="mojangTimeout" placeholder="例如 5s"></div>
+          <div class="admin-field wide"><label for="mojangEndpoint">Mojang API</label><input id="mojangEndpoint" data-key="mojangEndpoint"></div>
+          <div class="admin-field"><label for="mojangTimeout">Mojang 超时</label><input id="mojangTimeout" data-key="mojangTimeout" placeholder="例如 5s"></div>
         </fieldset>
 
         <div class="admin-actions config-actions">
@@ -524,21 +552,20 @@
           <button id="reloadServiceButton" class="admin-button secondary" type="button">重新加载服务</button>
           <button id="stopServiceButton" class="admin-button danger" type="button">停止服务</button>
           <button id="installAutostartButton" class="admin-button secondary" type="button">安装开机自启</button>
-          <button id="uninstallAutostartButton" class="admin-button secondary" type="button">移除开机自启</button>
+          <button id="uninstallAutostartButton" class="admin-button danger" type="button">移除开机自启</button>
           <button id="logoutButton" class="admin-button ghost" type="button">退出登录</button>
         </div>
       </form>
-    </section><p id="admin-config-status" class="admin-message" role="status" aria-live="polite"></p><p id="message" class="admin-message" role="status" aria-live="polite"></p></div></div>
-            <div id="plugin-tokens" class="page-content" style="display: none;">
+    </section><p id="admin-config-status" class="admin-message" role="status" aria-live="polite"></p><p id="message" class="admin-message" role="status" aria-live="polite"></p></div>
+            <div id="plugin-tokens" class="page-content plugin-token-page" style="display: none;">
                 <section class="admin-panel">
                     <div class="admin-panel-heading">
                         <div>
                             <span class="admin-panel-kicker">PLUGIN ACCESS</span>
-                            <h2>插件接入</h2>
                             <p class="admin-muted">服务 ID：<strong id="plugin-server-id">读取中</strong></p>
                         </div>
                     </div>
-                    <div class="admin-config-group plugin-token-form">
+                    <div class="plugin-token-form">
                         <div class="admin-field">
                             <label for="plugin-token-scope">插件权限</label>
                             <select id="plugin-token-scope">
@@ -574,6 +601,36 @@
                     </div>
                     <div id="plugin-token-list" class="plugin-token-list" aria-live="polite"></div>
                 </section>
+            </div>
+            </main>
+        </div>
+
+        <div class="modal" id="create-user-modal" aria-hidden="true" onclick="if (event.target === this) closeCreateUserModal()">
+            <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="create-user-title">
+                <button class="close-button" type="button" aria-label="关闭窗口" title="关闭窗口" onclick="closeCreateUserModal()"><i aria-hidden="true" class="fas fa-xmark"></i></button>
+                <div class="modal-header">
+                    <span class="modal-heading-icon" aria-hidden="true"><i class="fas fa-user-plus"></i></span>
+                    <h2 id="create-user-title">添加用户</h2>
+                </div>
+                <form class="modal-body admin-create-user-form" id="create-user-form" onsubmit="createAdminUser(event)">
+                    <div class="admin-field">
+                        <label for="create-user-name">用户名</label>
+                        <input id="create-user-name" name="name" type="text" required minlength="3" maxlength="16" pattern="[A-Za-z0-9_]{3,16}" autocomplete="username">
+                    </div>
+                    <div class="admin-field">
+                        <label for="create-user-email">邮箱</label>
+                        <input id="create-user-email" name="email" type="email" required autocomplete="email">
+                    </div>
+                    <div class="admin-field">
+                        <label for="create-user-password">初始密码</label>
+                        <input id="create-user-password" name="password" type="password" required autocomplete="new-password">
+                    </div>
+                    <p class="admin-message" id="create-user-status" role="status" aria-live="polite"></p>
+                    <div class="modal-footer">
+                        <button class="server-button" type="button" onclick="closeCreateUserModal()">取消</button>
+                        <button class="login-button" id="create-user-submit" type="submit">创建并激活</button>
+                    </div>
+                </form>
             </div>
         </div>
         

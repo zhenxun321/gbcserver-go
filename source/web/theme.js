@@ -26,7 +26,7 @@
         const dark = theme === 'dark';
         root.dataset.theme = theme;
         const meta = document.querySelector('meta[name="theme-color"]');
-        if (meta) meta.content = dark ? '#101722' : '#f5f7fb';
+        if (meta) meta.content = dark ? '#111318' : '#f9f9ff';
         if (!document.body) return;
         document.body.classList.toggle('theme-dark', dark);
         document.body.classList.toggle('theme-light', !dark);

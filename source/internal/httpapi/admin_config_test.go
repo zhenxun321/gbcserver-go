@@ -12,25 +12,10 @@ import (
 	"gbcserver/source/internal/store"
 )
 
-func TestValidateSiteBrandingFields(t *testing.T) {
-	for key, value := range map[string]string{
-		"siteName":         "GBC 综合管理系统",
-		"loginPageTitle":   "玩家登录",
-		"statusPageTitle":  "线路状态",
-		"statusPageFooter": "© GBC",
-	} {
-		if normalized, err := validateAdminConfigValue(key, value); err != nil || normalized != value {
-			t.Errorf("%s 未接受有效文案: normalized=%q err=%v", key, normalized, err)
-		}
-	}
-	for _, item := range []struct{ key, value string }{
-		{"siteName", ""},
-		{"siteName", strings.Repeat("站", 101)},
-		{"statusPageFooter", strings.Repeat("页", 161)},
-		{"statusPageTitle", "状态\n监控"},
-	} {
-		if _, err := validateAdminConfigValue(item.key, item.value); err == nil {
-			t.Errorf("%s 应拒绝无效文案", item.key)
+func TestValidateAdminConfigRejectsSiteBrandingFields(t *testing.T) {
+	for _, key := range []string{"siteName", "loginPageTitle", "statusPageTitle", "statusPageFooter"} {
+		if _, err := validateAdminConfigValue(key, "自定义文案"); err == nil {
+			t.Errorf("%s 不应再作为管理员配置项", key)
 		}
 	}
 }
@@ -120,8 +105,8 @@ func TestGitHubReleaseKeepsAdminConfigAndServerFeatures(t *testing.T) {
 			t.Errorf("GitHub 发布版应保留配置字段 %s", key)
 		}
 	}
-	if result.Config["statusAlertWebhookConfigured"] != true || result.Config["siteName"] != "嘎嘣脆综合管理系统" {
-		t.Fatalf("发布版应保留系统字段和 Webhook 配置状态: %#v", result.Config)
+	if result.Config["statusAlertWebhookConfigured"] != true {
+		t.Fatalf("发布版应保留 Webhook 配置状态: %#v", result.Config)
 	}
 
 	request = httptest.NewRequest(http.MethodPut, "/api/admin/config", strings.NewReader(`{"serverID":"changed"}`))

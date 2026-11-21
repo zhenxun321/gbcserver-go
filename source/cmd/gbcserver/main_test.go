@@ -422,7 +422,7 @@ func TestEmbeddedWebsiteOmitsProductAndAvatarFiles(t *testing.T) {
 
 func TestEmbeddedWebsiteAssets(t *testing.T) {
 	static := embeddedStaticFS()
-	for _, path := range []string{"admin.html", "login.html", "ping.html", "site-config.js", "admin.css", "admin-tokens.js", "status-page.js", "status-redesign.css"} {
+	for _, path := range []string{"admin.html", "login.html", "ping.html", "admin.css", "admin-tokens.js", "status-page.js", "status-redesign.css", "theme.css", "material.css", "shell-layout.css"} {
 		file, err := static.Open(path)
 		if err != nil {
 			t.Fatalf("管理页面资源应嵌入 (%s): %v", path, err)
@@ -434,6 +434,80 @@ func TestEmbeddedWebsiteAssets(t *testing.T) {
 			file.Close()
 			t.Errorf("GitHub 版不应嵌入官网资源: %s", path)
 		}
+	}
+	if _, err := static.Open("site-config.js"); err == nil {
+		t.Fatal("已移除的站点文案脚本不应嵌入程序")
+	}
+}
+
+func TestEmbeddedAdminViewsRemainInsideMainContent(t *testing.T) {
+	static := embeddedStaticFS()
+	page, err := fs.ReadFile(static, "admin.html")
+	if err != nil {
+		t.Fatal(err)
+	}
+	shell, err := fs.ReadFile(static, "shell-layout.css")
+	if err != nil {
+		t.Fatal(err)
+	}
+	mainContentStart := strings.Index(string(page), `<main class="main-content">`)
+	configStart := strings.Index(string(page), `id="admin-config"`)
+	pluginStart := strings.Index(string(page), `id="plugin-tokens"`)
+	mainContentEnd := strings.LastIndex(string(page), "</main>")
+	if mainContentStart < 0 || configStart <= mainContentStart || pluginStart <= configStart || mainContentEnd <= pluginStart {
+		t.Fatal("管理配置和插件接入页面必须位于同一个主内容区内")
+	}
+	if strings.Contains(string(page[configStart:pluginStart]), "</main>") {
+		t.Fatal("管理配置页不能提前关闭主内容区")
+	}
+	if !strings.Contains(string(page), `id="create-user-modal"`) || !strings.Contains(string(page), `id="create-user-form"`) {
+		t.Fatal("管理员用户列表缺少创建用户表单")
+	}
+	for _, expected := range []string{`id="coupon-modal"`, `id="coupon-item-name"`, `id="coupon-code"`, `id="coupon-expiry-date"`} {
+		if !strings.Contains(string(page), expected) {
+			t.Errorf("管理员兑换码结果弹窗缺少控件 %q", expected)
+		}
+	}
+	if strings.Count(string(page), `class="nav-divider"`) != 1 {
+		t.Fatal("管理员侧栏应只显示一个分隔线")
+	}
+	mainContentStyleStart := strings.Index(string(shell), ".system-page .main-content {")
+	if mainContentStyleStart < 0 {
+		t.Fatal("管理员宽屏布局样式不存在")
+	}
+	mainContentStyleEnd := strings.Index(string(shell)[mainContentStyleStart:], "\n}")
+	if mainContentStyleEnd < 0 || !strings.Contains(string(shell)[mainContentStyleStart:mainContentStyleStart+mainContentStyleEnd], "max-width: none;") {
+		t.Fatal("管理员宽屏内容区不能保留固定最大宽度")
+	}
+	couponManagementStart := strings.Index(string(shell), ".admin-page #shop .coupon-management {")
+	if couponManagementStart < 0 {
+		t.Fatal("管理员兑换码管理区域样式不存在")
+	}
+	couponManagementEnd := strings.Index(string(shell)[couponManagementStart:], "\n}")
+	if couponManagementEnd < 0 || !strings.Contains(string(shell)[couponManagementStart:couponManagementStart+couponManagementEnd], "max-width: none;") {
+		t.Fatal("管理员兑换码管理区应与上方商城内容对齐并随面板伸缩")
+	}
+	couponLayout := string(shell)[couponManagementStart : couponManagementStart+couponManagementEnd]
+	if !strings.Contains(couponLayout, "display: grid;") || !strings.Contains(couponLayout, "gap: 20px;") {
+		t.Fatal("管理员兑换码管理区应使用带间距的网格布局")
+	}
+	couponControlsStart := strings.Index(string(shell), ".admin-page #shop .coupon-controls {\n    width: 100%;\n    max-width: none;")
+	if couponControlsStart < 0 {
+		t.Fatal("管理员兑换码筛选区样式不存在")
+	}
+	couponControlsEnd := strings.Index(string(shell)[couponControlsStart:], "\n}")
+	if couponControlsEnd < 0 || !strings.Contains(string(shell)[couponControlsStart:couponControlsStart+couponControlsEnd], "width: 100%;") || !strings.Contains(string(shell)[couponControlsStart:couponControlsStart+couponControlsEnd], "max-width: none;") {
+		t.Fatal("管理员兑换码筛选区应随管理区宽度伸缩")
+	}
+	couponScript, err := fs.ReadFile(static, "admin-legacy.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(couponScript), "management.style.display = 'grid';") {
+		t.Fatal("显示兑换码管理区时必须保留 CSS 网格布局，避免筛选栏和表格贴合")
+	}
+	if !strings.Contains(string(page), `id="admin-totp-custom-secret"`) {
+		t.Fatal("管理员双重验证设置缺少自定义密钥输入框")
 	}
 }
 
@@ -451,6 +525,10 @@ func TestEmbeddedStatusPageIncludesRecentAvailabilityTimeline(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	material, err := fs.ReadFile(static, "material.css")
+	if err != nil {
+		t.Fatal(err)
+	}
 	player, err := fs.ReadFile(static, "player.js")
 	if err != nil {
 		t.Fatal(err)
@@ -463,7 +541,7 @@ func TestEmbeddedStatusPageIncludesRecentAvailabilityTimeline(t *testing.T) {
 			t.Errorf("嵌入状态页脚本缺少历史状态内容 %q", expected)
 		}
 	}
-	if !strings.Contains(string(style), ".status-history-scale") || !strings.Contains(string(style), "--status-page: #111827") {
+	if !strings.Contains(string(style), ".status-history-scale") || !strings.Contains(string(material), "--status-page: var(--md-sys-color-background)") {
 		t.Error("嵌入状态页样式未包含新版时间线和配色")
 	}
 	if !strings.Contains(string(player), "const enterActions") {
@@ -487,12 +565,17 @@ func TestEmbeddedWebsiteRoutesMatchProfile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, path := range []string{"/login.html", "/ping.html", "/status-page.js", "/site-config.js", "/admin/", "/admin/admin-tokens.js"} {
+	for _, path := range []string{"/login.html", "/ping.html", "/status-page.js", "/admin/", "/admin/admin-tokens.js"} {
 		response := httptest.NewRecorder()
 		handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, path, nil))
 		if response.Code != http.StatusOK {
 			t.Errorf("%s 应可访问，得到 %d", path, response.Code)
 		}
+	}
+	removedBrandingScript := httptest.NewRecorder()
+	handler.ServeHTTP(removedBrandingScript, httptest.NewRequest(http.MethodGet, "/site-config.js", nil))
+	if removedBrandingScript.Code != http.StatusNotFound {
+		t.Fatalf("已移除的站点文案脚本应返回 404，得到 %d", removedBrandingScript.Code)
 	}
 	publicTokenScript := httptest.NewRecorder()
 	handler.ServeHTTP(publicTokenScript, httptest.NewRequest(http.MethodGet, "/admin-tokens.js", nil))
@@ -536,6 +619,19 @@ func TestEmbeddedAdminStatusSettingsUseEditableLists(t *testing.T) {
 	for _, expected := range []string{`id="statusServers-list"`, `id="statusAPIs-list"`, `id="addStatusServerButton"`, `id="addStatusAPIButton"`} {
 		if !strings.Contains(string(page), expected) {
 			t.Errorf("嵌入管理员页面缺少状态列表控件 %q", expected)
+		}
+	}
+	for _, expected := range []string{`<summary>SMTP 发件配置</summary>`, `id="mailHost"`, `id="mailPort"`, `id="mailUsername"`, `id="mailPassword"`, `id="mailFromAddress"`, `id="mailSecure"`} {
+		if !strings.Contains(string(page), expected) {
+			t.Errorf("发布版管理员配置缺少 SMTP 控件 %q", expected)
+		}
+	}
+	if strings.Contains(string(page), "data-github-hide") {
+		t.Error("发布版管理员配置不应隐藏可编辑的服务器设置")
+	}
+	for _, expected := range []string{"if (key === 'adminPassword' || key === 'mailPassword')", "if (input.value !== '') values[key] = input.value;"} {
+		if !strings.Contains(string(script), expected) {
+			t.Errorf("管理员配置表单缺少敏感字段提交处理 %q", expected)
 		}
 	}
 	for _, expected := range []string{"api.mcsrvstat.us", "mcapi.us", "api.minetools.eu", "function renderStatusList", "function addStatusListRow"} {

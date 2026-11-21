@@ -1,7 +1,7 @@
 #requires -Version 7.0
 param(
-    [string]$InputDirectory = '目标文件/v1.0.2-build',
-    [string]$OutputDirectory = '目标文件/部署包/v1.0.2',
+    [string]$InputDirectory = '目标文件/v1.0.3-build',
+    [string]$OutputDirectory = '目标文件/部署包/v1.0.3',
     [switch]$NoArchive,
     [switch]$AllowUntrustedWindowsSignature,
     [switch]$SkipWindowsSignatureCheck
@@ -20,10 +20,26 @@ $batchName = (Get-Date -Format 'yyyyMMdd-HHmmss') + '-release-' + [Guid]::NewGui
 $batchRoot = Join-Path $outputRoot $batchName
 $targets = @('windows-386', 'windows-amd64', 'windows-arm64', 'linux-386', 'linux-amd64', 'linux-arm64-aarch64', 'linux-armv5', 'linux-armv6', 'linux-armv7')
 
-# Go 程序不内嵌数据库、头像、商品图片或插件 JAR。
-$releaseGuide = Join-Path $PSScriptRoot 'deploy/gbcserver-go发布说明.md'
-if (-not (Test-Path -LiteralPath $releaseGuide -PathType Leaf)) {
-    throw "gbcserver-go 发布说明不存在：$releaseGuide"
+# 压缩包统一主程序名，并只包含两个 shaded 插件产物。 / Keep one main-binary name and include only the two shaded plugin artifacts.
+$documentation = @(
+    (Join-Path $PSScriptRoot 'deploy/gbcserver-go发布说明.md'),
+    (Join-Path $PSScriptRoot 'deploy/部署说明.md'),
+    (Join-Path $PSScriptRoot 'deploy/API接口对接.md')
+)
+foreach ($file in $documentation) {
+    if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "发布文档不存在：$file" }
+}
+$pluginArtifacts = @(
+    @{ Name = 'whitelist'; Directory = (Join-Path $workspaceRoot '目标文件/plugins/whitelist'); Guide = (Join-Path $workspaceRoot 'plugins/whitelist/插件说明.md') },
+    @{ Name = 'coupon'; Directory = (Join-Path $workspaceRoot '目标文件/plugins/coupon'); Guide = (Join-Path $workspaceRoot 'plugins/coupon/插件说明.md') }
+)
+foreach ($plugin in $pluginArtifacts) {
+    if (-not (Test-Path -LiteralPath $plugin.Guide -PathType Leaf)) { throw "插件说明不存在：$($plugin.Guide)" }
+    $matches = @(Get-ChildItem -LiteralPath $plugin.Directory -Filter '*-shaded.jar' -File -ErrorAction Stop)
+    if ($matches.Count -ne 1) {
+        throw "插件 $($plugin.Name) 必须且只能有一个 shaded JAR：$($plugin.Directory)"
+    }
+    $plugin.Artifact = $matches[0].FullName
 }
 $buildBinaryPrefix = 'gbcserver'
 $requiredFiles = @()
@@ -71,11 +87,19 @@ foreach ($target in $targets) {
     $windows = $target.StartsWith('windows-')
     $extension = if ($windows) { '.exe' } else { '' }
     $sourceBinary = Join-Path $inputRoot "$buildBinaryPrefix-$target$extension"
-    $artifactName = "gbcserver-$target$extension"
+    $artifactName = "gbcserver$extension"
     $packageRoot = Join-Path $batchRoot ".package-$target"
     New-Item -ItemType Directory -Path $packageRoot -Force | Out-Null
     Copy-Item -LiteralPath $sourceBinary -Destination (Join-Path $packageRoot $artifactName) -Force
-    Copy-Item -LiteralPath $releaseGuide -Destination $packageRoot -Force
+    foreach ($file in $documentation) {
+        Copy-Item -LiteralPath $file -Destination $packageRoot -Force
+    }
+    foreach ($plugin in $pluginArtifacts) {
+        $pluginDirectory = Join-Path $packageRoot "plugins/$($plugin.Name)"
+        New-Item -ItemType Directory -Path $pluginDirectory -Force | Out-Null
+        Copy-Item -LiteralPath $plugin.Artifact -Destination $pluginDirectory -Force
+        Copy-Item -LiteralPath $plugin.Guide -Destination $pluginDirectory -Force
+    }
     if ($NoArchive) {
         Move-Item -LiteralPath $packageRoot -Destination (Join-Path $batchRoot $target)
     } else {

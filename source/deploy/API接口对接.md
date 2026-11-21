@@ -35,7 +35,7 @@ English: `{base}` refers to the Web/API base address.
 | `POST /api/adminLogin` | 无 | 管理员登录，输入字段见下方示例。 |
 | `GET /api/admin/status` | 无 | 查询是否已完成管理员初始化；不会返回自定义管理员安全入口。 |
 | `POST /api/admin/setup` | 未初始化且请求来自本机 | 仅接受 loopback TCP 连接；首次设置管理员账户和密码，`totpSecret` 可选。远程管理员请使用 SSH 端口转发。密码服务端生成 bcrypt 哈希后写入数据库。 |
-| `POST /api/admin/totp/begin` | 管理员 session | 本地生成待绑定 TOTP 密钥和二维码；换绑已有密钥时需要当前验证码。 |
+| `POST /api/admin/totp/begin` | 管理员 session | JSON 可选 `secret` 自定义 Base32 密钥，空值时随机生成；换绑已有密钥时还需 `currentCode`。密钥暂存于当前 session，确认验证码前不会写入配置。 |
 | `POST /api/admin/totp/confirm` | 管理员 session | 使用新验证码确认启用或换绑；换绑时当前验证码已在 begin 阶段验证。 |
 | `POST /api/admin/totp/disable` | 管理员 session | 使用管理员密码和当前验证码关闭双重验证。 |
 | `GET /api/admin/config` | 管理员 session | 读取数据库中的可编辑运行配置；密码哈希、TOTP secret 和 SMTP 密码只返回是否已配置。 |
@@ -51,7 +51,7 @@ English: `{base}` refers to the Web/API base address.
 | `GET <webhookPath>/health` | 无 | 端口更新 webhook 健康探测。`webhookPath` 默认 `/webhook/update-port`。 |
 | `POST <webhookPath>` | 无 | 更新已有服务名对应的 host/port；body 或 query 提供 `name`、`host`、`port`。name 与 host 必须和服务配置匹配。建议在反向代理/防火墙限制来源。 |
 
-English: The administrator setup endpoint accepts requests only over loopback TCP and supports an optional `totpSecret`. Use SSH port forwarding for remote setup. The TOTP begin and confirm endpoints generate and verify QR-based enrollment locally; changing an existing secret requires the current code at the begin step. Each TOTP time step can be used once. Disabling TOTP requires the administrator password and current code. Administrator login accepts `totp` only when two-factor authentication is enabled.
+English: The administrator setup endpoint accepts requests only over loopback TCP and supports an optional `totpSecret`. Use SSH port forwarding for remote setup. The TOTP begin endpoint accepts an optional custom Base32 `secret`; when omitted or empty, it generates a random secret. Rebinding requires `currentCode`. Pending secrets stay in the current admin session and are persisted only after the confirm code succeeds. Each TOTP time step can be used once. Disabling TOTP requires the administrator password and current code. Administrator login accepts `totp` only when two-factor authentication is enabled.
 
 玩家登录示例：
 
@@ -164,10 +164,10 @@ X-Request-ID: <稳定且唯一的请求ID>
 
 ```sh
 # 交互选择签发或撤销，并输出插件配置片段
-./gbcserver-linux-amd64 plugin-token
+./gbcserver plugin-token
 
 # 自动化脚本仍可使用显式参数模式
-./gbcserver-linux-amd64 plugin-token issue \
+./gbcserver plugin-token issue \
   --db /var/lib/gbcserver/gbcserver.db \
   --server-id default --scope whitelist
 ```

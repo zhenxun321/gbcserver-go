@@ -46,15 +46,56 @@
     return window.GBCI18N?.t(text) || text;
   }
 
+  function setTOTPEnrollmentVisible(visible, restoreFocus = false) {
+    const enrollment = document.querySelector('#admin-totp-enrollment');
+    const begin = document.querySelector('#admin-totp-begin');
+    if (enrollment) {
+      enrollment.hidden = !visible;
+      enrollment.setAttribute('aria-hidden', String(!visible));
+    }
+    if (begin) {
+      begin.setAttribute('aria-expanded', String(visible));
+      begin.textContent = translate(visible
+        ? '取消设置'
+        : (begin.dataset.totpEnabled === 'true' ? '更换验证器' : '启用双重验证'));
+    }
+    if (!visible) {
+      clearTOTPEnrollment();
+      if (restoreFocus) begin?.focus();
+    }
+  }
+
+  function clearTOTPEnrollment() {
+    document.querySelector('#admin-totp-qr')?.removeAttribute('src');
+    const secret = document.querySelector('#admin-totp-secret');
+    if (secret) secret.textContent = '';
+    const confirmCode = document.querySelector('#admin-totp-confirm-code');
+    if (confirmCode) confirmCode.value = '';
+    const copyButton = document.querySelector('#admin-totp-copy-secret');
+    if (copyButton) copyButton.disabled = true;
+  }
+
+  function setTOTPDisableVisible(visible) {
+    const disableForm = document.querySelector('#admin-totp-disable-form');
+    const disable = document.querySelector('#admin-totp-disable');
+    if (disableForm) {
+      disableForm.hidden = !visible;
+      disableForm.setAttribute('aria-hidden', String(!visible));
+    }
+    if (disable) disable.setAttribute('aria-expanded', String(visible));
+  }
+
   function setTOTPState(enabled) {
     const state = document.querySelector('#admin-totp-state');
     const begin = document.querySelector('#admin-totp-begin');
     const disable = document.querySelector('#admin-totp-disable');
     const currentField = document.querySelector('#admin-totp-current-field');
     if (state) state.textContent = translate(enabled ? '双重验证已启用' : '双重验证未启用');
-    if (begin) begin.textContent = translate(enabled ? '更换验证器' : '启用双重验证');
+    if (begin) begin.dataset.totpEnabled = String(enabled);
     if (disable) disable.hidden = !enabled;
     if (currentField) currentField.hidden = !enabled;
+    setTOTPEnrollmentVisible(false);
+    setTOTPDisableVisible(false);
     document.querySelector('#admin-totp-confirm')?.replaceChildren(document.createTextNode(translate(enabled ? '验证并更换' : '验证并启用')));
   }
 
@@ -244,14 +285,13 @@
   }
 
   function applyReleaseProfile(enabled) {
-    form?.querySelectorAll('[data-github-hide]').forEach(element => { element.hidden = enabled; });
     document.body.dataset.githubRelease = String(enabled);
     const heading = form?.closest('.admin-panel')?.querySelector('.admin-panel-heading h2');
     const kicker = form?.closest('.admin-panel')?.querySelector('.admin-panel-kicker');
     if (heading) heading.textContent = enabled ? '管理系统' : '运行配置';
     if (kicker) kicker.textContent = enabled ? 'MANAGEMENT SETTINGS' : 'DATABASE SETTINGS';
     const webGroup = [...(form?.querySelectorAll('fieldset') || [])].find(group => group.querySelector('#adminPath'));
-    if (webGroup?.querySelector('legend')) webGroup.querySelector('legend').textContent = enabled ? '管理员账户' : 'Web 与管理员';
+    if (webGroup?.querySelector('legend')) webGroup.querySelector('legend').textContent = 'Web 与管理员';
     const configNav = document.querySelector('.nav-item[data-page="admin-config"] .nav-text');
     if (configNav) configNav.textContent = enabled ? '管理系统' : '运行配置';
   }
@@ -284,7 +324,11 @@
     const values = {};
     form.querySelectorAll('[data-key]').forEach(input => {
       const key = input.dataset.key;
-      if (['adminPassword', 'adminTOTPSecret', 'mailPassword'].includes(key)) return;
+      if (key === 'adminTOTPSecret') return;
+      if (key === 'adminPassword' || key === 'mailPassword') {
+        if (input.value !== '') values[key] = input.value;
+        return;
+      }
       if (input.type === 'checkbox') {
         values[key] = String(input.checked);
         return;
@@ -314,32 +358,46 @@
   document.querySelector('#logoutButton')?.addEventListener('click', () => window.logout?.());
   document.querySelector('#admin-totp-begin')?.addEventListener('click', async event => {
     const button = event.currentTarget;
-    const wasEnabled = await refreshTOTPState().catch(() => false);
-    const currentCode = document.querySelector('#admin-totp-current-code')?.value.trim() || '';
-    if (wasEnabled && !currentCode) {
-      setTOTPMessage('请输入当前验证器验证码');
+    if (!document.querySelector('#admin-totp-enrollment')?.hidden) {
+      setTOTPEnrollmentVisible(false, true);
+      const currentCodeInput = document.querySelector('#admin-totp-current-code');
+      if (currentCodeInput) currentCodeInput.value = '';
+      setTOTPMessage('');
       return;
     }
     button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
     setTOTPMessage('');
     try {
-      const result = await requestAdminTOTP('begin', { currentCode });
-      const enrollment = document.querySelector('#admin-totp-enrollment');
+      const wasEnabled = await refreshTOTPState();
+      const currentCodeInput = document.querySelector('#admin-totp-current-code');
+      const currentCode = currentCodeInput?.value.trim() || '';
+      if (wasEnabled && !currentCode) {
+        setTOTPMessage('请输入当前验证器验证码');
+        currentCodeInput?.focus();
+        return;
+      }
+      const customSecretInput = document.querySelector('#admin-totp-custom-secret');
+      const customSecret = customSecretInput?.value.trim() || '';
+      const result = await requestAdminTOTP('begin', { currentCode, secret: customSecret });
+      if (customSecretInput) customSecretInput.value = '';
       const qr = document.querySelector('#admin-totp-qr');
       const secret = document.querySelector('#admin-totp-secret');
       if (qr) qr.src = result.qrDataURI;
       if (secret) secret.textContent = result.secret;
-      if (enrollment) enrollment.hidden = false;
+      const copyButton = document.querySelector('#admin-totp-copy-secret');
+      if (copyButton) copyButton.disabled = !result.secret;
+      setTOTPEnrollmentVisible(true);
       document.querySelector('#admin-totp-confirm-code')?.focus();
     } catch (error) {
       setTOTPMessage(error.message);
     } finally {
       button.disabled = false;
+      button.removeAttribute('aria-busy');
     }
   });
   document.querySelector('#admin-totp-confirm')?.addEventListener('click', async event => {
     const button = event.currentTarget;
-    const enabled = await refreshTOTPState().catch(() => false);
     const code = document.querySelector('#admin-totp-confirm-code')?.value.trim() || '';
     if (!/^\d{6}$/.test(code)) {
       setTOTPMessage('请输入 6 位新验证器验证码');
@@ -349,7 +407,7 @@
     setTOTPMessage('');
     try {
       await requestAdminTOTP('confirm', { code });
-      document.querySelector('#admin-totp-enrollment').hidden = true;
+      setTOTPEnrollmentVisible(false);
       document.querySelector('#admin-totp-current-code').value = '';
       document.querySelector('#admin-totp-confirm-code').value = '';
       setTOTPState(true);
@@ -362,18 +420,34 @@
     }
   });
   document.querySelector('#admin-totp-cancel')?.addEventListener('click', () => {
-    document.querySelector('#admin-totp-enrollment').hidden = true;
-    document.querySelector('#admin-totp-qr').removeAttribute('src');
-    document.querySelector('#admin-totp-secret').textContent = '';
-    document.querySelector('#admin-totp-confirm-code').value = '';
+    setTOTPEnrollmentVisible(false, true);
+    const currentCodeInput = document.querySelector('#admin-totp-current-code');
+    if (currentCodeInput) currentCodeInput.value = '';
+    const customSecretInput = document.querySelector('#admin-totp-custom-secret');
+    if (customSecretInput) customSecretInput.value = '';
     setTOTPMessage('');
   });
+  document.querySelector('#admin-totp-copy-secret')?.addEventListener('click', async () => {
+    const secret = document.querySelector('#admin-totp-secret');
+    if (!secret?.textContent) return;
+    try {
+      await navigator.clipboard.writeText(secret.textContent);
+      setTOTPMessage('双重验证密钥已复制');
+    } catch (_) {
+      const selection = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(secret);
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      setTOTPMessage('复制失败，请手动复制已选中的密钥');
+    }
+  });
   document.querySelector('#admin-totp-disable')?.addEventListener('click', () => {
-    document.querySelector('#admin-totp-disable-form').hidden = false;
+    setTOTPDisableVisible(true);
     document.querySelector('#admin-totp-disable-password')?.focus();
   });
   document.querySelector('#admin-totp-disable-cancel')?.addEventListener('click', () => {
-    document.querySelector('#admin-totp-disable-form').hidden = true;
+    setTOTPDisableVisible(false);
     document.querySelector('#admin-totp-disable-password').value = '';
     document.querySelector('#admin-totp-disable-code').value = '';
   });
@@ -389,7 +463,7 @@
     setTOTPMessage('');
     try {
       await requestAdminTOTP('disable', { password, code });
-      document.querySelector('#admin-totp-disable-form').hidden = true;
+      setTOTPDisableVisible(false);
       document.querySelector('#admin-totp-disable-password').value = '';
       document.querySelector('#admin-totp-disable-code').value = '';
       setTOTPState(false);
@@ -400,6 +474,26 @@
     } finally {
       button.disabled = false;
     }
+  });
+  document.querySelector('#admin-totp-current-code')?.addEventListener('keydown', event => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      document.querySelector('#admin-totp-begin')?.click();
+    }
+  });
+  document.querySelector('#admin-totp-confirm-code')?.addEventListener('keydown', event => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      document.querySelector('#admin-totp-confirm')?.click();
+    }
+  });
+  ['#admin-totp-disable-password', '#admin-totp-disable-code'].forEach(selector => {
+    document.querySelector(selector)?.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        document.querySelector('#admin-totp-disable-confirm')?.click();
+      }
+    });
   });
   document.querySelector('#reloadServiceButton')?.addEventListener('click', async event => {
     const button = event.currentTarget;

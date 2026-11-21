@@ -585,7 +585,7 @@
                         latestShopCoupons = Array.isArray(couponData.coupons) ? couponData.coupons : [];
                         renderCoupons(latestShopCoupons);
                         const management = document.getElementById('coupon-management');
-                        if (management) management.style.display = 'block';
+                        if (management) management.style.display = 'grid';
                     }
 
                     updateShopSummary(latestShopItems, latestShopCoupons);
@@ -1038,6 +1038,8 @@
                             type === 'item' ? `${getMinecraftItemLabel(items[0].itemId)} x ${items[0].amount}` :
                                 `礼包 (${items.length} 个物品)`;
                         document.getElementById('coupon-code').textContent = data.couponCode;
+                        document.getElementById('coupon-expiry-date').textContent =
+                            new Date(`${expires}T00:00:00`).toLocaleDateString();
                         openDialog('coupon-modal');
 
                         // 刷新兑换码列表
@@ -1146,11 +1148,11 @@
         userData.username = username;
         document.body.classList.add('admin-session');
         document.getElementById('login-page').style.display = 'none';
-        document.getElementById('main-system').style.display = 'flex';
+        document.getElementById('main-system').style.display = 'grid';
         document.getElementById('username-display').textContent = username;
         document.getElementById('user-status').textContent = '管理员';
         document.getElementById('user-center-kicker').textContent = 'ADMIN DIRECTORY';
-        document.getElementById('user-center-title').textContent = '用户管理';
+        document.getElementById('user-center-title').textContent = '账户列表';
         document.getElementById('user-center-description').textContent = '查看账户状态并管理用户';
         document.getElementById('admin-user-management').style.display = 'block';
         document.querySelectorAll('.admin-only').forEach(element => { element.style.display = ''; });
@@ -1228,6 +1230,59 @@
                     showNotification('刷新用户中心失败', 'error');
                 } finally {
                     if (button) button.disabled = false;
+                }
+            }
+
+            function openCreateUserModal() {
+                const form = document.getElementById('create-user-form');
+                const status = document.getElementById('create-user-status');
+                form?.reset();
+                if (status) status.textContent = '';
+                openDialog('create-user-modal', '#create-user-name');
+            }
+
+            function closeCreateUserModal() {
+                closeDialog('create-user-modal');
+            }
+
+            async function createAdminUser(event) {
+                event.preventDefault();
+                const form = document.getElementById('create-user-form');
+                const status = document.getElementById('create-user-status');
+                const button = document.getElementById('create-user-submit');
+                const session = getAdminSession();
+                if (!session) {
+                    if (status) status.textContent = '管理员会话已过期，请重新登录';
+                    return;
+                }
+
+                button.disabled = true;
+                if (status) status.textContent = '';
+                try {
+                    const response = await fetch(API_BASE_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Admin-Session': session
+                        },
+                        body: JSON.stringify({
+                            method: 'createUser',
+                            name: document.getElementById('create-user-name').value.trim(),
+                            email: document.getElementById('create-user-email').value.trim(),
+                            passwd: document.getElementById('create-user-password').value
+                        })
+                    });
+                    const result = await response.json();
+                    if (!response.ok || !result.success) throw new Error(result.message || '创建用户失败');
+
+                    closeCreateUserModal();
+                    form.reset();
+                    await loadAdminUserData();
+                    showNotification('用户已创建并激活');
+                } catch (error) {
+                    if (status) status.textContent = error.message || '创建用户失败';
+                } finally {
+                    button.disabled = false;
                 }
             }
             // 修改：状态更新函数 - 确保UI立即刷新
@@ -1322,6 +1377,16 @@
                     document.getElementById('admin-user-active').textContent = statusCounts.active;
                     document.getElementById('admin-user-inactive').textContent = statusCounts.inactive;
                     document.getElementById('admin-user-banned').textContent = statusCounts.banned;
+
+                    if (users.length === 0) {
+                        const row = document.createElement('tr');
+                        const cell = document.createElement('td');
+                        cell.className = 'table-empty-state';
+                        cell.colSpan = 7;
+                        cell.textContent = '暂无用户';
+                        row.appendChild(cell);
+                        tableBody.appendChild(row);
+                    }
 
                     users.forEach(user => {
                         const row = document.createElement('tr');

@@ -687,7 +687,7 @@
         else { localStorage.removeItem('rememberLogin'); localStorage.removeItem('username'); }
         isLoggedIn = true;
         document.getElementById('login-page').style.display = 'none';
-        document.getElementById('main-system').style.display = 'flex';
+        document.getElementById('main-system').style.display = 'grid';
         document.getElementById('username-display').textContent = displayUsername;
         document.getElementById('account-username').textContent = displayUsername;
         await fetchUserInfo();

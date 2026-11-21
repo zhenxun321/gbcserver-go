@@ -1,73 +1,3 @@
-:root {
-    color-scheme: light;
-    --page: #f7f9fc;
-    --surface: #ffffff;
-    --surface-raised: #ffffff;
-    --surface-soft: #eef2f8;
-    --surface-hover: #e8eef8;
-    --ink: #30343b;
-    --ink-strong: #191c20;
-    --muted: #5d626b;
-    --line: #d9dee8;
-    --line-strong: #747985;
-    --primary: #0b57d0;
-    --primary-hover: #0842a0;
-    --primary-soft: #d3e3fd;
-    --on-primary: #ffffff;
-    --success: #146c2e;
-    --success-soft: #c4eed0;
-    --danger: #b3261e;
-    --danger-soft: #f9dedc;
-    --warning: #8a4b00;
-    --warning-soft: #ffddb2;
-    --sidebar: #f0f4fa;
-    --sidebar-ink: #30343b;
-    --sidebar-muted: #5d626b;
-    --sidebar-line: #d9dee8;
-    --radius: 8px;
-    --radius-card: 8px;
-    --shadow: 0 1px 2px rgba(25, 28, 32, 0.08), 0 2px 6px rgba(25, 28, 32, 0.06);
-    --shadow-raised: 0 4px 12px rgba(25, 28, 32, 0.12);
-    --overlay: rgba(25, 28, 32, 0.48);
-    --focus: rgba(11, 87, 208, 0.22);
-    --effect-blue: #0b57d0;
-    --effect-blue-rgb: 11, 87, 208;
-}
-
-html[data-theme="dark"] {
-    color-scheme: dark;
-    --page: #111318;
-    --surface: #1b1b1f;
-    --surface-raised: #222329;
-    --surface-soft: #252a32;
-    --surface-hover: #30343d;
-    --ink: #c4c7cf;
-    --ink-strong: #e2e2e9;
-    --muted: #a9abb3;
-    --line: #44474f;
-    --line-strong: #8e9099;
-    --primary: #a8c7fa;
-    --primary-hover: #d3e3fd;
-    --primary-soft: #0842a0;
-    --on-primary: #062e6f;
-    --success: #81c995;
-    --success-soft: #193b25;
-    --danger: #f2b8b5;
-    --danger-soft: #601410;
-    --warning: #ffb95a;
-    --warning-soft: #4d2b00;
-    --sidebar: #1b1b1f;
-    --sidebar-ink: #e2e2e9;
-    --sidebar-muted: #a9abb3;
-    --sidebar-line: #44474f;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.28), 0 2px 6px rgba(0, 0, 0, 0.2);
-    --shadow-raised: 0 4px 14px rgba(0, 0, 0, 0.34);
-    --overlay: rgba(0, 0, 0, 0.66);
-    --focus: rgba(168, 199, 250, 0.28);
-    --effect-blue: #a8c7fa;
-    --effect-blue-rgb: 168, 199, 250;
-}
-
 html,
 body {
     min-width: 320px;
@@ -270,6 +200,29 @@ html .system-page .login-logo-kicker {
     box-shadow: inset 0 0 0 1px var(--primary);
 }
 
+.system-page select {
+    appearance: none;
+    padding-inline: 12px 38px;
+    background-image:
+        linear-gradient(45deg, transparent 50%, currentColor 50%),
+        linear-gradient(135deg, currentColor 50%, transparent 50%);
+    background-position:
+        calc(100% - 17px) 50%,
+        calc(100% - 12px) 50%;
+    background-repeat: no-repeat;
+    background-size: 5px 5px;
+    cursor: pointer;
+}
+
+.system-page select option {
+    background: var(--surface);
+    color: var(--ink-strong);
+}
+
+.admin-page [hidden] {
+    display: none !important;
+}
+
 .system-page .group > label {
     color: var(--muted);
 }
@@ -432,7 +385,7 @@ html .system-page .main-system {
     display: none;
 }
 
-html .system-page .content-card {
+html .admin-page .content-card {
     min-width: 0;
     border: 1px solid var(--line);
     border-radius: 8px;
@@ -441,8 +394,8 @@ html .system-page .content-card {
     backdrop-filter: none;
 }
 
-html .system-page .card-header,
-html .system-page .user-center-header {
+html .admin-page .card-header,
+html .admin-page .user-center-header {
     border-color: var(--line);
     background: var(--surface);
 }
@@ -603,38 +556,38 @@ html .system-page .modal-content {
 
 .status-page.theme-dark,
 html[data-theme="dark"] .status-page {
-    --status-page: #111318;
-    --status-surface: #1b1b1f;
-    --status-raised: #252a32;
-    --status-line: #44474f;
-    --status-ink: #e2e2e9;
-    --status-muted: #c4c7cf;
-    --status-dim: #a9abb3;
-    --status-accent: #a8c7fa;
-    --status-accent-soft: #0842a0;
-    --status-good: #81c995;
-    --status-good-soft: #193b25;
-    --status-bad: #f2b8b5;
-    --status-bad-soft: #601410;
-    --status-warn: #ffb95a;
+    --status-page: var(--md-sys-color-background);
+    --status-surface: var(--surface);
+    --status-raised: var(--surface-raised);
+    --status-line: var(--line);
+    --status-ink: var(--ink-strong);
+    --status-muted: var(--muted);
+    --status-dim: var(--md-sys-color-outline);
+    --status-accent: var(--primary);
+    --status-accent-soft: var(--primary-soft);
+    --status-good: var(--success);
+    --status-good-soft: var(--success-soft);
+    --status-bad: var(--danger);
+    --status-bad-soft: var(--danger-soft);
+    --status-warn: var(--warning);
 }
 
 .status-page.theme-light,
 html[data-theme="light"] .status-page {
-    --status-page: #f7f9fc;
-    --status-surface: #ffffff;
-    --status-raised: #eef2f8;
-    --status-line: #d9dee8;
-    --status-ink: #191c20;
-    --status-muted: #5d626b;
-    --status-dim: #747985;
-    --status-accent: #0b57d0;
-    --status-accent-soft: #d3e3fd;
-    --status-good: #146c2e;
-    --status-good-soft: #c4eed0;
-    --status-bad: #b3261e;
-    --status-bad-soft: #f9dedc;
-    --status-warn: #8a4b00;
+    --status-page: var(--md-sys-color-background);
+    --status-surface: var(--surface);
+    --status-raised: var(--surface-raised);
+    --status-line: var(--line);
+    --status-ink: var(--ink-strong);
+    --status-muted: var(--muted);
+    --status-dim: var(--md-sys-color-outline);
+    --status-accent: var(--primary);
+    --status-accent-soft: var(--primary-soft);
+    --status-good: var(--success);
+    --status-good-soft: var(--success-soft);
+    --status-bad: var(--danger);
+    --status-bad-soft: var(--danger-soft);
+    --status-warn: var(--warning);
 }
 
 .status-page .status-header {
@@ -643,15 +596,21 @@ html[data-theme="light"] .status-page {
 }
 
 .status-page .status-brand {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow: visible;
 }
 
 .status-page .status-brand span {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.status-page .status-brand img {
+    display: block;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
 }
 
 .status-page .status-actions {
@@ -734,6 +693,55 @@ html[data-theme="light"] .status-page {
 
 .status-page footer {
     background: var(--status-surface);
+}
+
+.system-page .main-content::before {
+    display: none;
+    content: none;
+}
+
+.system-page .page-title {
+    font-size: var(--type-headline);
+    line-height: 1.3;
+}
+
+.system-page .login-logo h1,
+.system-page .login-logo h2 {
+    font-size: var(--type-headline);
+}
+
+.system-page .card-header h2,
+.system-page .admin-panel-heading h2,
+.system-page .modal-header h2,
+.system-page .admin-config-group legend {
+    font-size: var(--type-title);
+}
+
+.system-page .section-description,
+.system-page .user-table th,
+.system-page .user-table td,
+.system-page .plugin-token-row,
+.status-page .status-message-row {
+    font-size: var(--type-body);
+}
+
+.system-page .section-kicker,
+.system-page .nav-text,
+.system-page .admin-field label,
+.system-page .status-list-control,
+.system-page .admin-badge,
+.status-page .status-login {
+    font-size: var(--type-label);
+}
+
+.system-page .admin-summary-strip strong {
+    font-size: var(--type-headline);
+}
+
+@media (max-width: 520px) {
+    .system-page .page-title {
+        font-size: var(--type-title);
+    }
 }
 
 @media (min-width: 701px) {

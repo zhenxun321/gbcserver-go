@@ -117,9 +117,143 @@ func TestLegacyAPIGuardsAndMigrationMarker(t *testing.T) {
 	}
 }
 
+func TestAdminCanCreateActiveUser(t *testing.T) {
+	server, db := testServer(t)
+	server.adminSessions.Put("admin-create-user", "admin", time.Now().Add(time.Hour))
+	request := httptest.NewRequest(http.MethodPost, "/api", strings.NewReader(`{"method":"createUser","name":"NewPlayer","passwd":"user-secret","email":"new-player@example.test"}`))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Admin-Session", "admin-create-user")
+	response := httptest.NewRecorder()
+	server.ServeHTTP(response, request)
+	var result struct {
+		Success bool `json:"success"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	if response.Code != http.StatusOK || !result.Success || strings.Contains(response.Body.String(), "user-secret") {
+		t.Fatalf("管理员创建用户失败或响应泄露密码: %d %s", response.Code, response.Body.String())
+	}
+	var userID int64
+	var status, passwordHash string
+	if err := db.QueryRow("SELECT id,status,password_hash FROM users WHERE name_key='newplayer'").Scan(&userID, &status, &passwordHash); err != nil {
+		t.Fatal(err)
+	}
+	if status != "active" || bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte("user-secret")) != nil {
+		t.Fatalf("新用户状态或密码哈希错误: status=%q", status)
+	}
+	loginRequest := httptest.NewRequest(http.MethodPost, "/api/webLogin", strings.NewReader(`{"username":"NewPlayer","password":"user-secret"}`))
+	loginRequest.Header.Set("Content-Type", "application/json")
+	loginResponse := httptest.NewRecorder()
+	server.ServeHTTP(loginResponse, loginRequest)
+	var loginResult struct {
+		Success  bool   `json:"success"`
+		Session  string `json:"session"`
+		Username string `json:"username"`
+	}
+	if err := json.Unmarshal(loginResponse.Body.Bytes(), &loginResult); err != nil {
+		t.Fatal(err)
+	}
+	if loginResponse.Code != http.StatusOK || !loginResult.Success || loginResult.Session == "" || loginResult.Username != "NewPlayer" {
+		t.Fatalf("管理员创建的用户不能立即登录: %d %+v", loginResponse.Code, loginResult)
+	}
+	var points int
+	if err := db.QueryRow("SELECT points FROM sign_accounts WHERE user_id=?", userID).Scan(&points); err != nil || points != 0 {
+		t.Fatalf("新用户积分账户未初始化: points=%d err=%v", points, err)
+	}
+
+	duplicate := httptest.NewRequest(http.MethodPost, "/api", strings.NewReader(`{"method":"createUser","name":"NewPlayer","passwd":"another-secret","email":"another@example.test"}`))
+	duplicate.Header.Set("Content-Type", "application/json")
+	duplicate.Header.Set("X-Admin-Session", "admin-create-user")
+	duplicateResponse := httptest.NewRecorder()
+	server.ServeHTTP(duplicateResponse, duplicate)
+	if !strings.Contains(duplicateResponse.Body.String(), "已被使用") {
+		t.Fatalf("重复用户名应返回冲突提示: %s", duplicateResponse.Body.String())
+	}
+
+	invalid := httptest.NewRequest(http.MethodPost, "/api", strings.NewReader(`{"method":"createUser","name":"ab","passwd":"secret","email":"invalid@example.test"}`))
+	invalid.Header.Set("Content-Type", "application/json")
+	invalid.Header.Set("X-Admin-Session", "admin-create-user")
+	invalidResponse := httptest.NewRecorder()
+	server.ServeHTTP(invalidResponse, invalid)
+	if !strings.Contains(invalidResponse.Body.String(), "用户名格式不合法") {
+		t.Fatalf("无效用户名应被拒绝: %s", invalidResponse.Body.String())
+	}
+
+	unauthorized := httptest.NewRequest(http.MethodPost, "/api", strings.NewReader(`{"method":"createUser","name":"AnotherUser","passwd":"secret","email":"another@example.test"}`))
+	unauthorized.Header.Set("Content-Type", "application/json")
+	unauthorized.Header.Set("X-Admin-Session", "invalid-admin-session")
+	unauthorizedResponse := httptest.NewRecorder()
+	server.ServeHTTP(unauthorizedResponse, unauthorized)
+	if !strings.Contains(unauthorizedResponse.Body.String(), "管理员会话无效") {
+		t.Fatalf("创建用户必须验证管理员会话: %s", unauthorizedResponse.Body.String())
+	}
+}
+
+func TestAdminGenerateCouponAcceptsConfiguredDateAndRFC3339(t *testing.T) {
+	server, db := testServer(t)
+	server.Config.SignTimezoneOffset = 8
+	server.adminSessions.Put("admin-generate-coupon", "admin", time.Now().Add(time.Hour))
+
+	generate := func(expiresAt string) *httptest.ResponseRecorder {
+		t.Helper()
+		body, err := json.Marshal(map[string]any{
+			"type": "item", "items": []map[string]any{{"itemId": "minecraft:diamond", "amount": 1}},
+			"expiresAt": expiresAt, "oneTimeUse": true,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		request := httptest.NewRequest(http.MethodPost, "/api", bytes.NewReader(body))
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("X-Admin-Session", "admin-generate-coupon")
+		request.URL.RawQuery = "method=generateCoupon"
+		response := httptest.NewRecorder()
+		server.ServeHTTP(response, request)
+		return response
+	}
+
+	dateOnly := generate("2027-01-02")
+	if !strings.Contains(dateOnly.Body.String(), `"success":true`) {
+		t.Fatalf("日期选择器格式应可生成兑换码: %d %s", dateOnly.Code, dateOnly.Body.String())
+	}
+	var storedExpiry string
+	if err := db.QueryRow("SELECT expires_at FROM coupons ORDER BY rowid DESC LIMIT 1").Scan(&storedExpiry); err != nil {
+		t.Fatal(err)
+	}
+	parsedExpiry, err := time.Parse(time.RFC3339Nano, storedExpiry)
+	if err != nil {
+		t.Fatalf("兑换码过期时间未按 RFC3339Nano 保存: %q %v", storedExpiry, err)
+	}
+	configuredExpiry := parsedExpiry.In(time.FixedZone("configured", 8*60*60))
+	if configuredExpiry.Format("2006-01-02 15:04:05.999999999") != "2027-01-02 23:59:59.999999999" {
+		t.Fatalf("日期应在配置时区的当日结束: %s", configuredExpiry.Format(time.RFC3339Nano))
+	}
+
+	rfc3339Expiry := "2027-02-03T10:11:12+08:00"
+	rfc3339 := generate(rfc3339Expiry)
+	if !strings.Contains(rfc3339.Body.String(), `"success":true`) {
+		t.Fatalf("已有 RFC3339 API 调用应继续可用: %d %s", rfc3339.Code, rfc3339.Body.String())
+	}
+	var storedRFC3339Expiry string
+	if err := db.QueryRow("SELECT expires_at FROM coupons ORDER BY rowid DESC LIMIT 1").Scan(&storedRFC3339Expiry); err != nil {
+		t.Fatal(err)
+	}
+	parsedRFC3339Expiry, err := time.Parse(time.RFC3339Nano, storedRFC3339Expiry)
+	wantRFC3339Expiry, wantErr := time.Parse(time.RFC3339Nano, rfc3339Expiry)
+	if err != nil || wantErr != nil || !parsedRFC3339Expiry.Equal(wantRFC3339Expiry) {
+		t.Fatalf("RFC3339 时间应保留原始时刻: %q %v", storedRFC3339Expiry, err)
+	}
+
+	invalid := generate("2027-02-30")
+	if strings.Contains(invalid.Body.String(), `"success":true`) || !strings.Contains(invalid.Body.String(), "expiresAt 不合法") {
+		t.Fatalf("无效日期应被拒绝: %d %s", invalid.Code, invalid.Body.String())
+	}
+}
+
 func TestLegacyMethodDispatcherRespondsForEveryMethod(t *testing.T) {
 	server, _ := testServer(t)
-	if len(legacyMethods) != 22 {
+	if len(legacyMethods) != 23 {
 		t.Fatalf("兼容 method 数量变化：当前 %d 个，需同步核对 Node 契约和迁移矩阵", len(legacyMethods))
 	}
 	for method := range legacyMethods {
@@ -314,15 +448,15 @@ func TestAdminSetupAndConfigPersistWithoutExposingSecrets(t *testing.T) {
 		t.Fatalf("管理员初始化失败: %d %s", setupResponse.Code, setupResponse.Body.String())
 	}
 	server.adminSessions.Put("admin-session", "root-admin", time.Now().Add(time.Hour))
-	update := httptest.NewRequest(http.MethodPut, "/api/admin/config", strings.NewReader(`{"httpPort":"18080","adminPath":"secure-admin","adminUsername":"new-admin","adminPassword":"new-password"}`))
+	update := httptest.NewRequest(http.MethodPut, "/api/admin/config", strings.NewReader(`{"httpPort":"18080","adminPath":"secure-admin","adminUsername":"new-admin","adminPassword":"new-password","mailHost":"smtp.example.test","mailPort":"587","mailUsername":"mailer","mailPassword":"smtp-password","mailFromName":"GBC Server","mailFromAddress":"noreply@example.test","mailSecure":"true"}`))
 	update.Header.Set("Content-Type", "application/json")
 	update.Header.Set("X-Admin-Session", "admin-session")
 	updateResponse := httptest.NewRecorder()
 	server.ServeHTTP(updateResponse, update)
-	if updateResponse.Code != http.StatusOK || strings.Contains(updateResponse.Body.String(), "new-password") || strings.Contains(updateResponse.Body.String(), "adminPasswordHash") {
+	if updateResponse.Code != http.StatusOK || strings.Contains(updateResponse.Body.String(), "new-password") || strings.Contains(updateResponse.Body.String(), "smtp-password") || strings.Contains(updateResponse.Body.String(), "adminPasswordHash") || strings.Contains(updateResponse.Body.String(), `"mailPassword"`) || !strings.Contains(updateResponse.Body.String(), `"mailPasswordConfigured":true`) {
 		t.Fatalf("管理员配置响应泄露敏感值或保存失败: %d %s", updateResponse.Code, updateResponse.Body.String())
 	}
-	var port, adminPath, username, passwordHash string
+	var port, adminPath, username, passwordHash, mailHost, mailPort, mailPassword string
 	if err := db.QueryRow("SELECT value FROM app_config WHERE key='httpPort'").Scan(&port); err != nil {
 		t.Fatal(err)
 	}
@@ -335,8 +469,17 @@ func TestAdminSetupAndConfigPersistWithoutExposingSecrets(t *testing.T) {
 	if err := db.QueryRow("SELECT value FROM app_config WHERE key='adminPasswordHash'").Scan(&passwordHash); err != nil {
 		t.Fatal(err)
 	}
-	if port != "18080" || adminPath != "/secure-admin" || username != "new-admin" || bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte("new-password")) != nil {
-		t.Fatalf("管理员配置未正确持久化: port=%q path=%q username=%q", port, adminPath, username)
+	if err := db.QueryRow("SELECT value FROM app_config WHERE key='mailHost'").Scan(&mailHost); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow("SELECT value FROM app_config WHERE key='mailPort'").Scan(&mailPort); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow("SELECT value FROM app_config WHERE key='mailPassword'").Scan(&mailPassword); err != nil {
+		t.Fatal(err)
+	}
+	if port != "18080" || adminPath != "/secure-admin" || username != "new-admin" || bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte("new-password")) != nil || mailHost != "smtp.example.test" || mailPort != "587" || mailPassword != "smtp-password" {
+		t.Fatalf("管理员或 SMTP 配置未正确持久化: port=%q path=%q username=%q mailHost=%q mailPort=%q", port, adminPath, username, mailHost, mailPort)
 	}
 }
 
@@ -611,6 +754,91 @@ func TestAdminTOTPEnrollmentRebindDisableAndSecretPrivacy(t *testing.T) {
 	}
 }
 
+func TestAdminTOTPCustomSecretEnrollment(t *testing.T) {
+	server, db := testServer(t)
+	setup := httptest.NewRequest(http.MethodPost, "/api/admin/setup", strings.NewReader(`{"username":"root-admin","password":"correct-horse"}`))
+	setup.RemoteAddr = "127.0.0.1:1234"
+	setup.Header.Set("Content-Type", "application/json")
+	setupResponse := httptest.NewRecorder()
+	server.ServeHTTP(setupResponse, setup)
+	if setupResponse.Code != http.StatusOK {
+		t.Fatalf("管理员初始化失败: %d %s", setupResponse.Code, setupResponse.Body.String())
+	}
+	server.adminSessions.Put("admin-session", "root-admin", time.Now().Add(time.Hour))
+
+	begin := func(secret string) *httptest.ResponseRecorder {
+		t.Helper()
+		body, err := json.Marshal(map[string]string{"secret": secret})
+		if err != nil {
+			t.Fatal(err)
+		}
+		request := httptest.NewRequest(http.MethodPost, "/api/admin/totp/begin", bytes.NewReader(body))
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("X-Admin-Session", "admin-session")
+		response := httptest.NewRecorder()
+		server.ServeHTTP(response, request)
+		return response
+	}
+	if response := begin("invalid-secret!"); response.Code != http.StatusBadRequest {
+		t.Fatalf("无效的自定义 TOTP 密钥应被拒绝: %d %s", response.Code, response.Body.String())
+	}
+	if response := begin("  jbsw y3dp ehpk 3pxp  "); response.Code != http.StatusOK {
+		t.Fatalf("有效的自定义 TOTP 密钥应接受空格和小写输入: %d %s", response.Code, response.Body.String())
+	} else {
+		var result struct {
+			Secret string `json:"secret"`
+		}
+		if err := json.Unmarshal(response.Body.Bytes(), &result); err != nil {
+			t.Fatal(err)
+		}
+		if result.Secret != "JBSWY3DPEHPK3PXP" {
+			t.Fatalf("自定义密钥应规范化为无空格的大写 Base32: %q", result.Secret)
+		}
+	}
+
+	var persisted string
+	if err := db.QueryRow("SELECT value FROM app_config WHERE key='adminTOTPSecret'").Scan(&persisted); err == nil && persisted != "" {
+		t.Fatalf("确认前不应持久化自定义密钥: %q", persisted)
+	}
+	confirm := func(code string) *httptest.ResponseRecorder {
+		t.Helper()
+		body, err := json.Marshal(map[string]string{"code": code})
+		if err != nil {
+			t.Fatal(err)
+		}
+		request := httptest.NewRequest(http.MethodPost, "/api/admin/totp/confirm", bytes.NewReader(body))
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("X-Admin-Session", "admin-session")
+		response := httptest.NewRecorder()
+		server.ServeHTTP(response, request)
+		return response
+	}
+	if response := confirm("invalid"); response.Code != http.StatusUnauthorized {
+		t.Fatalf("错误验证码应拒绝自定义密钥绑定: %d %s", response.Code, response.Body.String())
+	}
+	if err := db.QueryRow("SELECT value FROM app_config WHERE key='adminTOTPSecret'").Scan(&persisted); err == nil && persisted != "" {
+		t.Fatalf("错误验证码后不应持久化自定义密钥: %q", persisted)
+	}
+	decoded, err := decodeTOTPSecret("JBSWY3DPEHPK3PXP")
+	if err != nil {
+		t.Fatal(err)
+	}
+	code := calculateTOTP(decoded, totpCounter(time.Now()))
+	if response := confirm(code); response.Code != http.StatusOK {
+		t.Fatalf("正确验证码应启用自定义密钥: %d %s", response.Code, response.Body.String())
+	}
+	if err := db.QueryRow("SELECT value FROM app_config WHERE key='adminTOTPSecret'").Scan(&persisted); err != nil || persisted != "JBSWY3DPEHPK3PXP" {
+		t.Fatalf("确认后自定义密钥未正确保存: got=%q err=%v", persisted, err)
+	}
+	configRequest := httptest.NewRequest(http.MethodGet, "/api/admin/config", nil)
+	configRequest.Header.Set("X-Admin-Session", "admin-session")
+	configResponse := httptest.NewRecorder()
+	server.ServeHTTP(configResponse, configRequest)
+	if strings.Contains(configResponse.Body.String(), persisted) || strings.Contains(configResponse.Body.String(), "adminTOTPSecret") || !strings.Contains(configResponse.Body.String(), `"adminTOTPConfigured":true`) {
+		t.Fatalf("管理员配置响应不得泄露自定义密钥: %s", configResponse.Body.String())
+	}
+}
+
 func TestAdminTOTPConfirmRejectsStaleEnrollmentFromAnotherSession(t *testing.T) {
 	server, db := testServer(t)
 	setup := httptest.NewRequest(http.MethodPost, "/api/admin/setup", strings.NewReader(`{"username":"root-admin","password":"correct-horse"}`))
@@ -719,9 +947,14 @@ func TestAdminTOTPRebindRequiresCurrentCode(t *testing.T) {
 	}
 }
 
-func TestSiteBrandingSettingsAreEditableAndPublic(t *testing.T) {
-	server, _ := testServer(t)
+func TestSiteBrandingCustomizationIsRemoved(t *testing.T) {
+	server, db := testServer(t)
+	server.Config.GitHubRelease = true
 	server.adminSessions.Put("admin-session", "admin", time.Now().Add(time.Hour))
+	configStore := store.ConfigStore{DB: db}
+	if err := configStore.Set(context.Background(), "siteName", "旧自定义名称"); err != nil {
+		t.Fatal(err)
+	}
 
 	adminGet := httptest.NewRequest(http.MethodGet, "/api/admin/config", nil)
 	adminGet.Header.Set("X-Admin-Session", "admin-session")
@@ -733,57 +966,38 @@ func TestSiteBrandingSettingsAreEditableAndPublic(t *testing.T) {
 	if err := json.Unmarshal(adminGetResponse.Body.Bytes(), &initialAdmin); err != nil {
 		t.Fatal(err)
 	}
-	if initialAdmin.Config["siteName"] != "嘎嘣脆综合管理系统" || initialAdmin.Config["loginPageTitle"] != "嘎嘣脆综合管理系统" {
-		t.Fatalf("管理员配置未提供站点文案默认值: %#v", initialAdmin.Config)
+	for _, key := range []string{"siteName", "loginPageTitle", "statusPageTitle", "statusPageFooter"} {
+		if _, exists := initialAdmin.Config[key]; exists {
+			t.Errorf("管理员配置仍暴露已移除的站点文案键 %q", key)
+		}
 	}
 
 	publicGet := httptest.NewRequest(http.MethodGet, "/api/publicConfig", nil)
 	publicGetResponse := httptest.NewRecorder()
 	server.ServeHTTP(publicGetResponse, publicGet)
 	var initialPublic struct {
-		Branding map[string]string `json:"branding"`
+		Success       bool              `json:"success"`
+		Branding      map[string]string `json:"branding"`
+		GitHubRelease bool              `json:"githubRelease"`
+		Limits        map[string]any    `json:"limits"`
 	}
 	if err := json.Unmarshal(publicGetResponse.Body.Bytes(), &initialPublic); err != nil {
 		t.Fatal(err)
 	}
-	if initialPublic.Branding["siteName"] != "嘎嘣脆综合管理系统" || initialPublic.Branding["statusPageTitle"] != "实时状态监控" {
-		t.Fatalf("公开配置未提供站点文案默认值: %#v", initialPublic.Branding)
+	if !initialPublic.Success || initialPublic.Branding != nil || !initialPublic.GitHubRelease || len(initialPublic.Limits) == 0 {
+		t.Fatalf("公开配置应保留发布标记和限制配置且不暴露文案: %#v", initialPublic)
 	}
 
-	values := `{"siteName":"自定义综合管理系统","loginPageTitle":"成员登录","statusPageTitle":"线路运行状态","statusPageFooter":"© 自定义页脚"}`
-	update := httptest.NewRequest(http.MethodPut, "/api/admin/config", strings.NewReader(values))
+	update := httptest.NewRequest(http.MethodPut, "/api/admin/config", strings.NewReader(`{"siteName":"新名称"}`))
 	update.Header.Set("Content-Type", "application/json")
 	update.Header.Set("X-Admin-Session", "admin-session")
 	updateResponse := httptest.NewRecorder()
 	server.ServeHTTP(updateResponse, update)
-	var updated struct {
-		ReloadRequired bool           `json:"reloadRequired"`
-		Config         map[string]any `json:"config"`
+	if updateResponse.Code != http.StatusBadRequest {
+		t.Fatalf("管理员 API 应拒绝站点文案配置: %d %s", updateResponse.Code, updateResponse.Body.String())
 	}
-	if updateResponse.Code != http.StatusOK || json.Unmarshal(updateResponse.Body.Bytes(), &updated) != nil {
-		t.Fatalf("保存站点文案失败: %d %s", updateResponse.Code, updateResponse.Body.String())
-	}
-	if updated.ReloadRequired || updated.Config["siteName"] != "自定义综合管理系统" {
-		t.Fatalf("站点文案保存结果不正确: %#v", updated)
-	}
-
-	publicGet = httptest.NewRequest(http.MethodGet, "/api/publicConfig", nil)
-	publicGetResponse = httptest.NewRecorder()
-	server.ServeHTTP(publicGetResponse, publicGet)
-	var finalPublic struct {
-		Branding map[string]string `json:"branding"`
-	}
-	if err := json.Unmarshal(publicGetResponse.Body.Bytes(), &finalPublic); err != nil {
-		t.Fatal(err)
-	}
-	want := map[string]string{
-		"siteName": "自定义综合管理系统", "loginPageTitle": "成员登录",
-		"statusPageTitle": "线路运行状态", "statusPageFooter": "© 自定义页脚",
-	}
-	for key, value := range want {
-		if finalPublic.Branding[key] != value {
-			t.Errorf("公开配置 %s=%q，期望 %q", key, finalPublic.Branding[key], value)
-		}
+	if value, exists, err := configStore.Get(context.Background(), "siteName"); err != nil || !exists || value != "旧自定义名称" {
+		t.Fatalf("旧文案数据应保留且不被新请求覆盖: value=%q exists=%t err=%v", value, exists, err)
 	}
 }
 

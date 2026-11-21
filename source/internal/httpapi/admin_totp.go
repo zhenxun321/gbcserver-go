@@ -103,10 +103,20 @@ func (s *Server) handleAdminTOTPBegin(w http.ResponseWriter, r *http.Request) {
 	}
 	var input struct {
 		CurrentCode string `json:"currentCode"`
+		Secret      string `json:"secret"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16*1024)).Decode(&input); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"success": false, "message": "请求格式无效"})
 		return
+	}
+	secret := ""
+	if strings.TrimSpace(input.Secret) != "" {
+		decoded, err := decodeTOTPSecret(input.Secret)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"success": false, "message": "TOTP 密钥格式无效"})
+			return
+		}
+		secret = base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(decoded)
 	}
 	s.adminTOTPEnrollMu.Lock()
 	currentSecret, err := s.adminTOTPSecret(r.Context())
@@ -126,13 +136,15 @@ func (s *Server) handleAdminTOTPBegin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var randomSecret [20]byte
-	if _, err := io.ReadFull(rand.Reader, randomSecret[:]); err != nil {
-		s.adminTOTPEnrollMu.Unlock()
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"success": false, "message": "生成双重验证密钥失败"})
-		return
+	if secret == "" {
+		var randomSecret [20]byte
+		if _, err := io.ReadFull(rand.Reader, randomSecret[:]); err != nil {
+			s.adminTOTPEnrollMu.Unlock()
+			writeJSON(w, http.StatusInternalServerError, map[string]any{"success": false, "message": "生成双重验证密钥失败"})
+			return
+		}
+		secret = base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(randomSecret[:])
 	}
-	secret := base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(randomSecret[:])
 
 	now := time.Now()
 	for id, enrollment := range s.adminTOTPEnrollments {

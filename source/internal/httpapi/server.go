@@ -126,7 +126,7 @@ type statusCacheEntry struct {
 }
 
 var legacyMethods = map[string]struct{}{
-	"getAllUsers": {}, "activateUser": {}, "banUser": {}, "unbanUser": {},
+	"getAllUsers": {}, "createUser": {}, "activateUser": {}, "banUser": {}, "unbanUser": {},
 	"deleteUser": {}, "updateEmail": {}, "changePassword": {}, "addShopItem": {},
 	"updateShopItem": {}, "deleteShopItem": {}, "getShopItems": {}, "purchaseItem": {},
 	"generateCoupon": {}, "useCoupon": {}, "getCoupons": {}, "deleteCoupon": {},
@@ -376,14 +376,8 @@ func (s *Server) handlePublicConfig(writer http.ResponseWriter, request *http.Re
 		http.Error(writer, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	branding, err := s.siteBrandingConfig(request.Context())
-	if err != nil {
-		writeJSON(writer, http.StatusInternalServerError, map[string]any{"success": false, "message": "读取站点配置失败"})
-		return
-	}
 	writeJSON(writer, http.StatusOK, map[string]any{
 		"success":       true,
-		"branding":      branding,
 		"githubRelease": s.Config.GitHubRelease,
 		"limits": map[string]any{
 			"maxAvatarBytes":              s.Config.MaxAvatarBytes,
@@ -455,6 +449,8 @@ func (s *Server) handleLegacyAPI(writer http.ResponseWriter, request *http.Reque
 	switch method {
 	case "getAllUsers", "generateCoupon":
 		required = []string{"session"}
+	case "createUser":
+		required = []string{"name", "passwd", "email", "session"}
 	case "activateUser", "banUser", "unbanUser", "deleteUser":
 		required = []string{"name", "session"}
 	case "updateEmail":
@@ -499,7 +495,7 @@ func (s *Server) handleLegacyAPI(writer http.ResponseWriter, request *http.Reque
 		// 兑换码必须走独立 coupon listener，不能在 Web listener 上绕过 scope 与来源 ACL。
 		writeJSON(writer, http.StatusUnauthorized, map[string]any{"success": false, "message": "兑换接口需要独立令牌"})
 		return
-	case "getAllUsers", "activateUser", "banUser", "unbanUser", "deleteUser", "updateEmail", "changePassword",
+	case "getAllUsers", "createUser", "activateUser", "banUser", "unbanUser", "deleteUser", "updateEmail", "changePassword",
 		"addShopItem", "updateShopItem", "deleteShopItem", "purchaseItem", "generateCoupon", "getCoupons", "deleteCoupon":
 		s.handleAdminLegacyMethod(writer, request, method, params)
 		return

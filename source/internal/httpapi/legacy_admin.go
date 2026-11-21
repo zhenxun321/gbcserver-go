@@ -227,6 +227,8 @@ func (s *Server) handleAdminLegacyMethod(writer http.ResponseWriter, request *ht
 	switch method {
 	case "getAllUsers":
 		s.adminGetUsers(writer, ctx)
+	case "createUser":
+		s.adminCreateUser(writer, request, paramString(params["name"]), paramString(params["passwd"]), paramString(params["email"]))
 	case "activateUser", "banUser", "unbanUser":
 		s.adminSetUserStatus(writer, ctx, method, paramString(params["name"]))
 	case "deleteUser":
@@ -250,6 +252,68 @@ func (s *Server) handleAdminLegacyMethod(writer http.ResponseWriter, request *ht
 	case "deleteCoupon":
 		s.adminDeleteCoupon(writer, ctx, paramString(params["code"]))
 	}
+}
+
+func (s *Server) adminCreateUser(writer http.ResponseWriter, request *http.Request, name, password, email string) {
+	name = strings.TrimSpace(name)
+	email = strings.TrimSpace(email)
+	if !minecraftNamePattern.MatchString(name) || strings.EqualFold(name, "admin") {
+		writeJSON(writer, http.StatusOK, map[string]any{"success": false, "message": "用户名格式不合法"})
+		return
+	}
+	if !emailPattern.MatchString(email) {
+		writeJSON(writer, http.StatusOK, map[string]any{"success": false, "message": "邮箱格式不合法"})
+		return
+	}
+	if password == "" {
+		writeJSON(writer, http.StatusOK, map[string]any{"success": false, "message": "初始密码不能为空"})
+		return
+	}
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		writeJSON(writer, http.StatusOK, map[string]any{"success": false, "message": "初始密码无效"})
+		return
+	}
+	userUUID := offlineUUID(name)
+	if s.Config.MojangLookup != nil {
+		userUUID, err = s.Config.MojangLookup.Lookup(request.Context(), name)
+		if err != nil {
+			writeJSON(writer, http.StatusOK, map[string]any{"success": false, "message": "获取 Minecraft UUID 失败"})
+			return
+		}
+	}
+
+	now := time.Now()
+	tx, err := s.DB.BeginTx(request.Context(), nil)
+	if err != nil {
+		writeJSON(writer, http.StatusOK, map[string]any{"success": false, "message": "创建用户失败"})
+		return
+	}
+	defer tx.Rollback()
+	result, err := tx.ExecContext(request.Context(), `INSERT INTO users
+		(name,name_key,uuid,password_hash,email,email_key,status,join_date,online_time_ms,created_at,updated_at)
+		VALUES(?,?,?,?,?,?,'active',?,0,?,?)`,
+		name, strings.ToLower(name), userUUID, string(passwordHash), email, strings.ToLower(email),
+		localSignDate(now, s.Config.SignTimezoneOffset), now.UnixMilli(), now.UnixMilli())
+	if err != nil {
+		writeJSON(writer, http.StatusOK, map[string]any{"success": false, "message": "用户名、邮箱或 UUID 已被使用"})
+		return
+	}
+	userID, err := result.LastInsertId()
+	if err != nil {
+		writeJSON(writer, http.StatusOK, map[string]any{"success": false, "message": "创建用户失败"})
+		return
+	}
+	if _, err := tx.ExecContext(request.Context(), `INSERT INTO sign_accounts
+		(user_id,total_days,consecutive_days,last_sign,points,updated_at) VALUES(?,0,0,NULL,0,?)`, userID, now.UnixMilli()); err != nil {
+		writeJSON(writer, http.StatusOK, map[string]any{"success": false, "message": "创建用户积分账户失败"})
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		writeJSON(writer, http.StatusOK, map[string]any{"success": false, "message": "创建用户失败"})
+		return
+	}
+	writeJSON(writer, http.StatusOK, map[string]any{"success": true, "message": "用户已创建并激活"})
 }
 
 func (s *Server) adminGetUsers(writer http.ResponseWriter, ctx context.Context) {
@@ -630,6 +694,14 @@ func (s *Server) adminGenerateCoupon(writer http.ResponseWriter, request *http.R
 	expiry, err := time.Parse(time.RFC3339, payload.ExpiresAt)
 	if err != nil {
 		expiry, err = time.Parse(time.RFC3339Nano, payload.ExpiresAt)
+	}
+	if err != nil {
+		var couponDate time.Time
+		couponDate, err = time.Parse("2006-01-02", payload.ExpiresAt)
+		if err == nil {
+			location := time.FixedZone("configured", s.Config.SignTimezoneOffset*60*60)
+			expiry = time.Date(couponDate.Year(), couponDate.Month(), couponDate.Day(), 23, 59, 59, int(time.Second-time.Nanosecond), location)
+		}
 	}
 	if err != nil {
 		writeJSON(writer, http.StatusOK, map[string]any{"success": false, "message": "expiresAt 不合法"})

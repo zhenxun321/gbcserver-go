@@ -296,18 +296,6 @@ body.admin-page {
     font-weight: 700;
 }
 
-.site-branding-group {
-    border-color: color-mix(in srgb, var(--primary) 28%, var(--line));
-}
-
-.site-branding-group legend {
-    color: var(--primary);
-}
-
-.site-branding-group .site-footer-field {
-    grid-column: 1 / -1;
-}
-
 .admin-config-group .wide {
     grid-column: 1 / -1;
 }

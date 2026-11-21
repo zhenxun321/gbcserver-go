@@ -38,13 +38,9 @@
     return value;
   }
 
-  function isCustomBranding(node) {
-    return Boolean(node.parentElement?.closest('[data-site-field], [data-site-title]'));
-  }
-
   function translateNode(node) {
     if (node.nodeType !== Node.TEXT_NODE || !node.nodeValue.trim()) return;
-    if (isCustomBranding(node) || node.parentElement?.closest('[data-user-content], #username-display, .user-name, .player-name, .username, .item-name, .server-name, .dynamic-value')) return;
+    if (node.parentElement?.closest('[data-user-content], #username-display, .user-name, .player-name, .username, .item-name, .server-name, .dynamic-value')) return;
     if (node.parentElement?.closest('script, style, code, pre, textarea, [contenteditable="true"]')) return;
     const current = node.nodeValue;
     if (!originalText.has(node) || (renderedText.has(node) && renderedText.get(node) !== current)) originalText.set(node, current);
@@ -59,7 +55,6 @@
     if (root.nodeType === Node.ELEMENT_NODE && root.matches(selector)) elements.push(root);
     if (root.querySelectorAll) elements.push(...root.querySelectorAll(selector));
     for (const element of elements) {
-      if (element.closest('[data-site-field], [data-site-title]')) continue;
       let values = originalAttributes.get(element);
       if (!values) {
         values = new Map();

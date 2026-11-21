@@ -879,13 +879,7 @@ html[data-theme="dark"] .login-footer {
     min-height: 100vh;
     min-height: 100svh;
     display: none;
-    background:
-        linear-gradient(rgba(42, 167, 220, 0.07) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(42, 167, 220, 0.07) 1px, transparent 1px),
-        linear-gradient(135deg, #f5fbff 0%, #eaf6fc 58%, #f7fbfd 100%);
-    background-attachment: fixed;
-    background-position: 0 0, 0 0, center;
-    background-size: 48px 48px, 48px 48px, auto;
+    background: var(--page);
 }
 
 .sidebar {
@@ -1737,6 +1731,7 @@ tbody tr:hover {
 }
 
 .shop-page-subtitle,
+.admin-page .shop-page-subtitle,
 .coupon-section-header p {
     margin: 5px 0 0;
     color: var(--muted);
@@ -1747,7 +1742,7 @@ tbody tr:hover {
     display: flex;
     justify-content: space-between;
     gap: 16px;
-    margin: -8px 0 18px;
+    margin: 0 0 18px;
     color: var(--muted);
     font-size: 0.8rem;
 }
@@ -1778,6 +1773,7 @@ tbody tr:hover {
 
 .shop-controls,
 .coupon-controls {
+    min-width: 0;
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
@@ -2209,11 +2205,7 @@ body.modal-open {
 }
 
 html[data-theme="dark"] .main-system {
-    background:
-        linear-gradient(rgba(106, 208, 243, 0.06) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(106, 208, 243, 0.06) 1px, transparent 1px),
-        linear-gradient(135deg, #071722 0%, #0b2332 60%, #0b1b27 100%);
-    background-size: 48px 48px, 48px 48px, auto;
+    background: var(--page);
 }
 
 html[data-theme="dark"] .content-card {
